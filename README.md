@@ -36,6 +36,10 @@ The WordPress admin screen includes:
 
 The chart library is vendored in the plugin. The dashboard does not depend on a CDN.
 
+![Agent Metrics overview](screenshots/overview.png)
+
+![Agent Metrics settings and MCP connection](screenshots/settings.png)
+
 ## Install
 
 ### WordPress admin
