@@ -128,6 +128,14 @@ The catalog is intentionally explicit instead of guessing from generic browser u
 
 Some provider controls, such as Google-Extended and Applebot-Extended, are robots.txt tokens rather than independent HTTP crawlers. They are included for reporting and policy context, but not every token can appear as a distinct access-log user agent in real traffic.
 
+Bot discovery and naming research is informed by [Cloudflare Radar's Bot Directory](https://radar.cloudflare.com/bots/directory) and cross-checked against bot operators' official documentation.
+
+## Data Storage
+
+Agent Metrics stores every valid parsed request in a persistent WordPress table named with the site's table prefix, such as `wp_agent_metrics_hits`. Human and bot requests are both retained indefinitely in the MVP. Dashboard and MCP reports are derived from SQL queries over those event rows.
+
+The plugin tracks the active log file and byte offset so repeated refreshes do not duplicate requests. When a host rotates its logs, the plugin detects the new file and continues ingesting from its beginning. Historical rows remain available after the original log file is deleted.
+
 ## Development
 
 This is a plain WordPress plugin. There is no frontend build step for the plugin itself.

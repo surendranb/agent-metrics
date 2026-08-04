@@ -146,7 +146,7 @@ class AM_MCP_Server {
 	private static function call_tool( $params ) {
 		$name  = $params['name'] ?? '';
 		$args  = (array) ( $params['arguments'] ?? array() );
-		$rollup = AM_Rollup::get();
+		$rollup = AM_Reports::get();
 		if ( false === $rollup ) {
 			throw new Exception( 'Log parse in progress or failed; retry shortly' );
 		}
@@ -327,7 +327,7 @@ class AM_MCP_Server {
 	private static function read_resource( $params ) {
 		$uri = $params['uri'] ?? '';
 		if ( 'agent-metrics://summary' === $uri ) {
-			$rollup = AM_Rollup::get();
+			$rollup = AM_Reports::get();
 			$text   = false === $rollup ? 'Parse in progress or failed.' : wp_json_encode( $rollup, JSON_PRETTY_PRINT );
 			return array( 'contents' => array( array( 'uri' => $uri, 'mimeType' => 'application/json', 'text' => $text ) ) );
 		}

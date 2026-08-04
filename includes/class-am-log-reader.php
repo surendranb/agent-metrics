@@ -58,4 +58,30 @@ class AM_Log_Reader {
 		}
 		return $lines;
 	}
+
+	public static function read_from( $path, $offset = 0 ) {
+		$h = @fopen( $path, 'rb' );
+		if ( ! $h ) {
+			return array( 'lines' => array(), 'offset' => $offset, 'inode' => null );
+		}
+		$stat = @fstat( $h );
+		$size = (int) ( $stat['size'] ?? 0 );
+		$inode = (string) ( $stat['ino'] ?? '' );
+		if ( $offset > $size ) {
+			$offset = 0;
+		}
+		fseek( $h, $offset );
+		$lines = array();
+		while ( false !== ( $line = fgets( $h, 65536 ) ) ) {
+			$start = ftell( $h ) - strlen( $line );
+			if ( "\n" !== substr( $line, -1 ) ) {
+				fseek( $h, $start );
+				break;
+			}
+			$lines[] = array( 'line' => $line, 'offset' => $start );
+		}
+		$next = ftell( $h );
+		fclose( $h );
+		return array( 'lines' => $lines, 'offset' => $next, 'inode' => $inode );
+	}
 }

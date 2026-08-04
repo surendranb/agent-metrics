@@ -78,12 +78,12 @@ class AM_Rollup {
 	}
 
 	public static function get() {
-		$rollup = get_transient( self::TRANSIENT );
-		if ( false !== $rollup && time() - $rollup['generated'] < self::interval() ) {
-			return $rollup;
+		$status = get_option( 'am_parse_status', array() );
+		if ( ! empty( $status['generated'] ) && time() - (int) $status['generated'] < self::interval() ) {
+			return AM_Reports::get();
 		}
 		if ( time() - (int) get_option( self::GUARD ) < self::GUARD_TTL ) {
-			return $rollup;
+			return AM_Reports::get();
 		}
 		update_option( self::GUARD, time() );
 		return self::refresh();
@@ -118,54 +118,37 @@ class AM_Rollup {
 
 	public static function refresh() {
 		$probe = AM_Prober::probe();
-		$incr  = array(
-			'total_lines' => 0,
+		$status = array(
+			'generated'   => time(),
+			'log_path'    => $probe['path'],
+			'error'       => $probe['error'],
+			'diagnostics' => $probe['diagnostics'],
 			'skipped'     => 0,
-			'bots'        => array(),
-			'days'        => array(),
-			'day_pages'   => array(),
-			'pages'       => array(),
 		);
 		if ( $probe['path'] ) {
-			foreach ( AM_Log_Reader::read( $probe['path'] ) as $line ) {
-				$incr['total_lines']++;
-				$hit = AM_Parser::parse( $line );
+			$cursor = AM_Storage::cursor();
+			$inode  = (string) @fileinode( $probe['path'] );
+			$offset = ( $cursor['path'] ?? null ) === $probe['path'] && ( $cursor['inode'] ?? '' ) === $inode ? (int) ( $cursor['offset'] ?? 0 ) : 0;
+			$read = AM_Log_Reader::read_from( $probe['path'], $offset );
+			foreach ( $read['lines'] as $record ) {
+				$hit = AM_Parser::parse( $record['line'] );
 				if ( ! $hit ) {
-					$incr['skipped']++;
+					$status['skipped']++;
 					continue;
 				}
 				$bot = AM_Bot_Catalog::match( $hit['ua'] );
-				if ( ! $bot ) {
-					continue;
-				}
-				$slug = $bot['slug'];
-				$day  = gmdate( 'Y-m-d', $hit['ts'] );
-
-				if ( ! isset( $incr['bots'][ $slug ] ) ) {
-					$incr['bots'][ $slug ] = array( 'name' => $bot['name'], 'category' => $bot['category'], 'hits' => 0 );
-				}
-				$incr['bots'][ $slug ]['hits']++;
-				$incr['days'][ $day ][ $slug ]            = ( $incr['days'][ $day ][ $slug ] ?? 0 ) + 1;
-				$incr['day_pages'][ $day ][ $hit['path'] ] = ( $incr['day_pages'][ $day ][ $hit['path'] ] ?? 0 ) + 1;
-				$incr['pages'][ $hit['path'] ]            = ( $incr['pages'][ $hit['path'] ] ?? 0 ) + 1;
+				AM_Storage::insert( $hit, $bot, $probe['path'], $read['inode'], $record['offset'] );
 			}
+			AM_Storage::save_cursor( array( 'path' => $probe['path'], 'inode' => $read['inode'], 'offset' => $read['offset'], 'updated' => time() ) );
 		}
-
-		$existing = get_transient( self::TRANSIENT );
-		$fresh    = ! is_array( $existing ) || time() - ( $existing['generated'] ?? 0 ) >= self::WINDOW_DAYS * DAY_IN_SECONDS;
-		$rollup   = self::merge( $fresh ? self::empty() : $existing, $incr );
-		$rollup['generated']   = time();
-		$rollup['log_path']    = $probe['path'];
-		$rollup['error']       = $probe['error'];
-		$rollup['diagnostics'] = $probe['diagnostics'];
-		$rollup['recommended_interval_min'] = self::recommended_interval_minutes( $rollup );
-		$rollup['interval_min']             = (int) get_option( 'am_parse_interval_minutes', 0 );
-		$rollup['next_parse']               = $rollup['generated'] + self::interval();
-		set_transient( self::TRANSIENT, $rollup, self::WINDOW_DAYS * DAY_IN_SECONDS );
-		return $rollup;
+		update_option( 'am_parse_status', $status, false );
+		return AM_Reports::get();
 	}
 
 	public static function invalidate() {
 		delete_transient( self::TRANSIENT );
+		$status = get_option( 'am_parse_status', array() );
+		$status['generated'] = 0;
+		update_option( 'am_parse_status', $status, false );
 	}
 }

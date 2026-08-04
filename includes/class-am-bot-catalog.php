@@ -52,6 +52,19 @@ class AM_Bot_Catalog {
 		return self::$bots[ $slug ] ?? null;
 	}
 
+	public static function operator( $slug ) {
+		$operators = array(
+			'gptbot' => 'OpenAI', 'oai-searchbot' => 'OpenAI', 'chatgpt-user' => 'OpenAI',
+			'claudebot' => 'Anthropic', 'claude-searchbot' => 'Anthropic', 'claude-user' => 'Anthropic', 'claude-web' => 'Anthropic', 'anthropic-ai' => 'Anthropic',
+			'google-ext' => 'Google', 'googleother' => 'Google',
+			'meta-agent' => 'Meta', 'meta-fetcher' => 'Meta', 'bytespider' => 'ByteDance',
+			'perplexitybot' => 'Perplexity', 'perplexity-user' => 'Perplexity',
+			'mistralai-user' => 'Mistral', 'mistralai-index' => 'Mistral', 'amazonbot' => 'Amazon',
+			'applebot' => 'Apple', 'applebot-ext' => 'Apple', 'ccbot' => 'Common Crawl', 'bingbot' => 'Microsoft',
+		);
+		return $operators[ $slug ] ?? 'Other';
+	}
+
 	public static function match( $ua ) {
 		$ua = strtolower( (string) $ua );
 		if ( '' === $ua ) {
@@ -64,6 +77,7 @@ class AM_Bot_Catalog {
 						'slug'     => $slug,
 						'name'     => $bot['name'],
 						'category' => $bot['category'],
+						'operator' => self::operator( $slug ),
 					);
 				}
 			}
