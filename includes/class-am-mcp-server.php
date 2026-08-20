@@ -26,11 +26,22 @@ class AM_MCP_Server {
 		if ( $header && hash_equals( $key, $header ) ) {
 			return true;
 		}
-		$param = $request->get_param( 'key' );
-		return is_string( $param ) && hash_equals( $key, $param );
+		return false;
 	}
 
 	public static function handle( $request ) {
+		// ponytail: transient-based rate limiter — 120 requests/minute per IP; upgrade to Redis if needed
+		$ip       = filter_var( $_SERVER['REMOTE_ADDR'] ?? '', FILTER_VALIDATE_IP ) ?: 'unknown';
+		$rate_key = 'am_mcp_rate_' . md5( $ip );
+		$count    = (int) get_transient( $rate_key );
+		if ( $count >= 120 ) {
+			return new WP_REST_Response( array(
+				'jsonrpc' => '2.0',
+				'error'   => array( 'code' => -32000, 'message' => 'Rate limit exceeded. Try again in a minute.' ),
+			), 429 );
+		}
+		set_transient( $rate_key, $count + 1, 60 );
+
 		$body = json_decode( $request->get_body(), true );
 		if ( ! is_array( $body ) || ( $body['jsonrpc'] ?? '' ) !== '2.0' || ! isset( $body['method'] ) ) {
 			return new WP_REST_Response( array( 'error' => 'invalid JSON-RPC request' ), 400 );
@@ -38,10 +49,34 @@ class AM_MCP_Server {
 		$id     = $body['id'] ?? null;
 		$method = $body['method'];
 		$params = $body['params'] ?? array();
+		$started = microtime( true );
 
 		try {
 			$result = self::dispatch( $method, $params );
+			if ( 'initialize' === $method ) {
+				$client = is_array( $params['clientInfo'] ?? null ) ? $params['clientInfo'] : array();
+				AM_Telemetry::send( 'mcp_started', array(
+					'status'          => 'success',
+					'client_name'     => $client['name'] ?? '',
+					'client_version'  => $client['version'] ?? '',
+					'protocol_version' => $params['protocolVersion'] ?? '',
+				), 'mcp' );
+			}
+			if ( 'tools/call' === $method ) {
+				AM_Telemetry::send( 'tool_executed', array(
+					'status'    => 'success',
+					'tool'      => $params['name'] ?? '',
+					'latency_ms' => (int) round( ( microtime( true ) - $started ) * 1000 ),
+				), 'mcp' );
+			}
 		} catch ( Exception $e ) {
+			if ( 'tools/call' === $method ) {
+				AM_Telemetry::send( 'tool_error', array(
+					'status'    => 'error',
+					'tool'      => $params['name'] ?? '',
+					'latency_ms' => (int) round( ( microtime( true ) - $started ) * 1000 ),
+				), 'mcp' );
+			}
 			return self::rpc( $id, null, array( 'code' => -32601, 'message' => $e->getMessage() ) );
 		}
 		return self::rpc( $id, $result, null );

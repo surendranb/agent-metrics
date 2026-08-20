@@ -1,0 +1,11 @@
+name = "agent-metrics-telemetry"
+main = "src/index.js"
+compatibility_date = "2026-08-04"
+workers_dev = false
+
+routes = [
+  { pattern = "agent-metrics.builditwithai.xyz/v1/events", zone_name = "builditwithai.xyz", custom_domain = false }
+]
+
+[vars]
+POSTHOG_HOST = "https://us.i.posthog.com"

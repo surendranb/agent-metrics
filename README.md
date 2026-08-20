@@ -117,6 +117,10 @@ Available prompts:
 
 The settings screen includes copy-ready connection snippets for OpenCode, Claude Code, and Cursor. Treat the API key like a password. Regenerate it from Settings if it is exposed.
 
+## Anonymous Diagnostics
+
+Anonymous diagnostics are disabled by default. An administrator can enable them under **AI Bot Traffic → Settings** to share plugin and MCP health metadata with the Agent Metrics project. This includes product version, event type, status, latency, and parse health. It never includes the site URL, page paths, user agents, access logs, bot traffic, WordPress content, MCP arguments, MCP results, or credentials. The setting and anonymous installation ID are removed when the plugin is uninstalled.
+
 ## Bot Catalog
 
 The catalog is intentionally explicit instead of guessing from generic browser user agents. It currently covers major AI and AI-adjacent crawlers, including:

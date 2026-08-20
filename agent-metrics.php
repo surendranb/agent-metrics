@@ -2,7 +2,7 @@
 /**
  * Plugin Name: AI Bot Traffic Analytics
  * Description: Reads server access logs and reports AI bot traffic (GPTBot, ClaudeBot, Google AI, etc.) with an admin dashboard and an MCP server so AI agents can query the same data.
- * Version: 0.2.0
+ * Version: 0.4.0
  * Author: builditwithai.xyz
  * License: GPL-2.0-or-later
  * Text Domain: agent-metrics
@@ -10,13 +10,14 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AM_VERSION', '0.2.0' );
+define( 'AM_VERSION', '0.4.0' );
 define( 'AM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 
 require AM_PLUGIN_DIR . 'includes/class-am-bot-catalog.php';
 require AM_PLUGIN_DIR . 'includes/class-am-parser.php';
 require AM_PLUGIN_DIR . 'includes/class-am-log-reader.php';
 require AM_PLUGIN_DIR . 'includes/class-am-storage.php';
+require AM_PLUGIN_DIR . 'includes/class-am-telemetry.php';
 require AM_PLUGIN_DIR . 'includes/class-am-prober.php';
 require AM_PLUGIN_DIR . 'includes/class-am-rollup.php';
 require AM_PLUGIN_DIR . 'includes/class-am-reports.php';
@@ -40,6 +41,9 @@ function am_ensure_setup() {
 	if ( ! wp_next_scheduled( 'am_parse' ) ) {
 		wp_schedule_event( time() + AM_Rollup::interval(), 'am_parse', 'am_parse' );
 	}
+	if ( ! wp_next_scheduled( 'am_telemetry_heartbeat' ) ) {
+		wp_schedule_event( time() + DAY_IN_SECONDS, 'daily', 'am_telemetry_heartbeat' );
+	}
 }
 
 add_filter( 'cron_schedules', function ( $schedules ) {
@@ -51,6 +55,7 @@ add_filter( 'cron_schedules', function ( $schedules ) {
 } );
 
 add_action( 'am_parse', array( 'AM_Rollup', 'refresh' ) );
+add_action( 'am_telemetry_heartbeat', array( 'AM_Telemetry', 'maybe_heartbeat' ) );
 add_action( 'admin_menu', array( 'AM_Admin', 'menu' ) );
 add_action( 'rest_api_init', array( 'AM_MCP_Server', 'init' ) );
 
@@ -58,4 +63,5 @@ register_deactivation_hook( __FILE__, 'am_deactivate' );
 function am_deactivate() {
 	wp_clear_scheduled_hook( 'am_parse' );
 	wp_clear_scheduled_hook( 'am_daily_parse' );
+	wp_clear_scheduled_hook( 'am_telemetry_heartbeat' );
 }

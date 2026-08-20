@@ -117,6 +117,7 @@ class AM_Rollup {
 	}
 
 	public static function refresh() {
+		$started = microtime( true );
 		$probe = AM_Prober::probe();
 		$status = array(
 			'generated'   => time(),
@@ -136,12 +137,29 @@ class AM_Rollup {
 					$status['skipped']++;
 					continue;
 				}
+				// ponytail: skip static assets and WP internals — only track content URLs
+				if ( self::is_noise( $hit['path'] ) ) {
+					$status['skipped']++;
+					continue;
+				}
 				$bot = AM_Bot_Catalog::match( $hit['ua'] );
 				AM_Storage::insert( $hit, $bot, $probe['path'], $read['inode'], $record['offset'] );
 			}
 			AM_Storage::save_cursor( array( 'path' => $probe['path'], 'inode' => $read['inode'], 'offset' => $read['offset'], 'updated' => time() ) );
 		}
 		update_option( 'am_parse_status', $status, false );
+		if ( AM_Telemetry::enabled() ) {
+			if ( ! get_option( 'am_telemetry_first_parse', false ) ) {
+				update_option( 'am_telemetry_first_parse', true, false );
+				AM_Telemetry::send( 'first_parse', array( 'status' => $probe['error'] ? 'error' : 'success' ) );
+			}
+			AM_Telemetry::send( 'parse_completed', array(
+				'status'          => $probe['error'] ? 'error' : 'success',
+				'duration_ms'     => (int) round( ( microtime( true ) - $started ) * 1000 ),
+				'lines_processed' => count( $read['lines'] ?? array() ),
+				'skipped_lines'   => $status['skipped'],
+			) );
+		}
 		return AM_Reports::get();
 	}
 
@@ -150,5 +168,37 @@ class AM_Rollup {
 		$status = get_option( 'am_parse_status', array() );
 		$status['generated'] = 0;
 		update_option( 'am_parse_status', $status, false );
+	}
+
+	/**
+	 * Returns true if the path is a static asset or WordPress internal route.
+	 * ponytail: extension list covers every common web asset; upgrade path is
+	 * a user-configurable exclusion list if someone needs to track .json or similar.
+	 */
+	private static function is_noise( $path ) {
+		$path = strtolower( $path );
+		// Strip query string for extension check.
+		$clean = strtok( $path, '?' );
+
+		// Static asset extensions.
+		$static = array(
+			'.css', '.js', '.map',
+			'.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', '.webp', '.avif', '.bmp',
+			'.woff', '.woff2', '.ttf', '.eot', '.otf',
+			'.mp4', '.webm', '.ogg', '.mp3', '.wav',
+			'.pdf', '.zip', '.gz', '.tar', '.rar',
+		);
+		foreach ( $static as $ext ) {
+			if ( substr( $clean, -strlen( $ext ) ) === $ext ) {
+				return true;
+			}
+		}
+
+		// WordPress internal paths.
+		if ( preg_match( '#^/(wp-admin|wp-includes|wp-cron|wp-json/wp/|wp-json/oembed)#', $path ) ) {
+			return true;
+		}
+
+		return false;
 	}
 }

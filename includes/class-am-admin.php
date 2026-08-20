@@ -25,6 +25,7 @@ class AM_Admin {
 				$val   = (int) ( $_POST['am_parse_interval_minutes'] ?? 0 );
 				$valid = array( 0, 5, 15, 30, 60, 180 );
 				update_option( 'am_parse_interval_minutes', in_array( $val, $valid, true ) ? $val : 0 );
+				AM_Telemetry::set_enabled( ! empty( $_POST['am_telemetry_enabled'] ) );
 			}
 		}
 		$rollup = AM_Rollup::get();
@@ -135,12 +136,17 @@ class AM_Admin {
 	}
 
 	private static function render_settings( $rollup ) {
+		if ( AM_Telemetry::enabled() && ! get_option( 'am_telemetry_mcp_configured', false ) ) {
+			update_option( 'am_telemetry_mcp_configured', true, false );
+			AM_Telemetry::send( 'mcp_configured', array( 'status' => 'success' ) );
+		}
 		$key      = get_option( 'am_mcp_key', '' );
 		$endpoint = rest_url( 'agent-metrics/v1/mcp' );
 		$interval = (int) get_option( 'am_parse_interval_minutes', 0 );
 		$auto     = 0 === $interval;
 		$current  = $auto ? AM_Rollup::interval() / MINUTE_IN_SECONDS : $interval;
 		$rec      = ! empty( $rollup['recommended_interval_min'] ) ? (int) $rollup['recommended_interval_min'] : 30;
+		$telemetry = AM_Telemetry::enabled();
 		?>
 		<div style="background:#fffffe;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,24,88,.08)">
 			<h2 style="margin:0 0 10px;color:#001858">Parse frequency</h2>
@@ -163,8 +169,12 @@ class AM_Admin {
 						Fixed — parsing every <?php echo esc_html( $current ); ?> min. Recommended for this traffic level: <strong>every <?php echo esc_html( $rec ); ?> min</strong>.
 					<?php endif; ?>
 				</span>
+				<label style="display:flex;align-items:center;gap:6px;color:#172c66;font-size:13px">
+					<input type="checkbox" name="am_telemetry_enabled" value="1" <?php checked( $telemetry ); ?>>
+					Share anonymous diagnostics (plugin and MCP health only)
+				</label>
 			</form>
-			<p style="margin:10px 0 0;color:#172c66;font-size:12px">Cron runs when the site is visited; dashboard and agent reads refresh on demand if data is older than the interval.</p>
+			<p style="margin:10px 0 0;color:#172c66;font-size:12px">Optional diagnostics include version, latency, and parse health. They never include site URLs, page paths, logs, traffic data, or MCP payloads. Cron runs when the site is visited; dashboard and agent reads refresh on demand if data is older than the interval.</p>
 		</div>
 
 		<div style="background:#fffffe;border-radius:12px;padding:16px;margin-top:14px;box-shadow:0 1px 3px rgba(0,24,88,.08)">
