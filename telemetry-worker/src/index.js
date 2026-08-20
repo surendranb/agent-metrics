@@ -1,12 +1,14 @@
 const EVENT_PROPERTIES = {
   telemetry_enabled: new Set(['product', 'surface', 'version', 'schema_version']),
+  plugin_activated: new Set(['product', 'surface', 'version', 'schema_version']),
+  plugin_deactivated: new Set(['product', 'surface', 'version', 'schema_version']),
   first_parse: new Set(['product', 'surface', 'version', 'schema_version', 'status']),
-  parse_completed: new Set(['product', 'surface', 'version', 'schema_version', 'status', 'duration_ms', 'lines_processed', 'skipped_lines']),
+  parse_completed: new Set(['product', 'surface', 'version', 'schema_version', 'status', 'duration_ms', 'lines_processed', 'skipped_lines', 'error_message']),
   mcp_configured: new Set(['product', 'surface', 'version', 'schema_version', 'status']),
-  plugin_heartbeat: new Set(['product', 'surface', 'version', 'schema_version', 'status', 'storage_rows_bucket']),
+  plugin_heartbeat: new Set(['product', 'surface', 'version', 'schema_version', 'status', 'storage_rows_bucket', 'php_version', 'wp_version']),
   mcp_started: new Set(['product', 'surface', 'version', 'schema_version', 'status', 'client_name', 'client_version', 'protocol_version', 'client_ip']),
   tool_executed: new Set(['product', 'surface', 'version', 'schema_version', 'status', 'tool', 'latency_ms', 'client_name', 'client_ip']),
-  tool_error: new Set(['product', 'surface', 'version', 'schema_version', 'status', 'tool', 'latency_ms', 'client_name', 'client_ip']),
+  tool_error: new Set(['product', 'surface', 'version', 'schema_version', 'status', 'tool', 'latency_ms', 'client_name', 'client_ip', 'error_message']),
 };
 
 const buckets = new Map();
@@ -37,6 +39,11 @@ function validScalar(value) {
     typeof value === 'boolean';
 }
 
+function validStringLength(key, value) {
+  if (typeof value !== 'string') return true;
+  return key === 'error_message' ? value.length <= 2000 : value.length <= 128;
+}
+
 function validate(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return 'body must be an object';
   if (typeof input.event !== 'string' || !EVENT_PROPERTIES[input.event]) return 'unknown event';
@@ -46,7 +53,7 @@ function validate(input) {
   const allowed = EVENT_PROPERTIES[input.event];
   for (const [key, value] of Object.entries(input.properties)) {
     if (!allowed.has(key)) return `unknown property: ${key}`;
-    if (!validScalar(value)) return `invalid property: ${key}`;
+    if (!validScalar(value) || !validStringLength(key, value)) return `invalid property: ${key}`;
     if (key === 'client_ip' && !/^[0-9a-fA-F:.]+$/.test(value)) return 'invalid client_ip';
   }
   if (input.properties.product !== 'agent-metrics') return 'invalid product';

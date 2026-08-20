@@ -3,9 +3,10 @@ defined( 'ABSPATH' ) || exit;
 
 class AM_Storage {
 
-	const VERSION = '1.0';
+	const VERSION = '1.1';
 	const OPTION  = 'am_storage_version';
 	const CURSOR  = 'am_log_cursor';
+	const RETENTION_DAYS = 30;
 
 	public static function table() {
 		global $wpdb;
@@ -15,9 +16,9 @@ class AM_Storage {
 	public static function install() {
 		global $wpdb;
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		$table  = self::table();
+		$table   = self::table();
 		$collate = $wpdb->get_charset_collate();
-		$sql = "CREATE TABLE {$table} (
+		$sql     = "CREATE TABLE {$table} (
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			timestamp datetime NOT NULL,
 			method varchar(16) NOT NULL,
@@ -35,6 +36,7 @@ class AM_Storage {
 			UNIQUE KEY source_position (source_file(100),source_inode(40),source_offset),
 			KEY timestamp (timestamp),
 			KEY bot (bot),
+			KEY is_bot (is_bot),
 			KEY operator (operator),
 			KEY intent (intent),
 			KEY path (path(191))
@@ -60,31 +62,33 @@ class AM_Storage {
 
 	public static function insert( $hit, $bot, $source_file, $source_inode, $source_offset ) {
 		global $wpdb;
-		$exists = $wpdb->get_var( $wpdb->prepare(
-			'SELECT id FROM ' . self::table() . ' WHERE source_file = %s AND source_inode = %s AND source_offset = %d LIMIT 1',
-			$source_file,
-			(string) $source_inode,
-			$source_offset
-		) );
-		if ( $exists ) {
-			return false;
-		}
-		$data = array(
-			'timestamp'      => gmdate( 'Y-m-d H:i:s', $hit['ts'] ),
-			'method'         => $hit['method'],
-			'path'           => $hit['path'],
-			'status_code'    => $hit['status'],
-			'user_agent'     => $hit['ua'],
-			'is_bot'         => $bot ? 1 : 0,
-			'operator'       => $bot ? $bot['operator'] : null,
-			'bot'            => $bot ? $bot['slug'] : null,
-			'intent'         => $bot ? $bot['category'] : null,
-			'source_file'    => $source_file,
-			'source_inode'   => (string) $source_inode,
-			'source_offset'  => $source_offset,
+		$result = $wpdb->query(
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				'INSERT IGNORE INTO ' . self::table() . '
+				(timestamp, method, path, status_code, user_agent, is_bot, operator, bot, intent, source_file, source_inode, source_offset)
+				VALUES (%s, %s, %s, %d, %s, %d, %s, %s, %s, %s, %s, %d)',
+				gmdate( 'Y-m-d H:i:s', $hit['ts'] ),
+				$hit['method'],
+				$hit['path'],
+				$hit['status'],
+				$hit['ua'],
+				$bot ? 1 : 0,
+				$bot ? $bot['operator'] : null,
+				$bot ? $bot['slug'] : null,
+				$bot ? $bot['category'] : null,
+				$source_file,
+				(string) $source_inode,
+				$source_offset
+			)
 		);
-		$format = array( '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%d' );
-		$result = $wpdb->insert( self::table(), $data, $format );
-		return false !== $result;
+		return 1 === $result;
+	}
+
+	public static function prune( $days = self::RETENTION_DAYS ) {
+		global $wpdb;
+		$cutoff = gmdate( 'Y-m-d H:i:s', time() - $days * DAY_IN_SECONDS );
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		return $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . self::table() . ' WHERE timestamp < %s', $cutoff ) );
 	}
 }

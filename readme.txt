@@ -3,7 +3,7 @@ Contributors: surendranb
 Tags: ai, bots, analytics, mcp, crawlers
 Requires at least: 6.0
 Tested up to: 6.8
-Stable tag: 0.4.0
+Stable tag: 0.4.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -18,7 +18,7 @@ Agent Metrics turns your server access logs into an AI bot traffic report. It id
 * **Search** — crawlers building indexes used to answer current questions.
 * **On-demand** — fetchers retrieving a page because a person asked an assistant for it.
 
-All data stays on your WordPress site. No logs are sent to a third-party analytics service.
+All data stays on your WordPress site. Traffic data never leaves it; optional diagnostics are covered in the Privacy section below.
 
 = Dashboard =
 
@@ -40,7 +40,13 @@ Available prompts: `daily-brief`, `weekly-report`, `trend-analysis`, `investigat
 = Privacy =
 
 * No site URLs, page paths, user agents, or traffic data are ever sent externally.
-* Optional anonymous diagnostics (disabled by default) share only version, event type, status, and latency.
+* Optional anonymous diagnostics (disabled by default) share only version, event type, status, latency, and error messages. Full event list:
+  * `telemetry_enabled`, `plugin_activated`, `plugin_deactivated` — no additional fields.
+  * `first_parse`, `parse_completed` — status, duration, lines processed, skipped lines, error message.
+  * `mcp_configured`, `plugin_heartbeat` — status, storage row count, PHP version, WordPress version.
+  * `mcp_started` — status, client name, client version, protocol version.
+  * `tool_executed`, `tool_error` — status, tool name, latency, client name, error message.
+* Diagnostics are sent to a Cloudflare Worker which forwards to PostHog; the Worker validates and drops anything not on the allowlist.
 * The plugin reads your existing server access log — it does not create new tracking scripts or cookies.
 
 == Installation ==
@@ -78,6 +84,16 @@ Yes. It requires authentication via `Authorization: Bearer` header or `X-AM-Key`
 
 == Changelog ==
 
+= 0.4.1 =
+* **Privacy**: One-time consent notice for optional diagnostics — Enable / Remind me later / Decline.
+* **Privacy**: Explicit consent is recorded when diagnostics are enabled from Settings; declining silences the notice.
+* **Telemetry**: Add activate/deactivate lifecycle events and PHP/WordPress versions to heartbeat.
+* **Telemetry**: Error events include the raw error message for faster debugging (capped, no site data).
+* **Performance**: Cache dashboard rollup in a transient; cap log reads at 5000 lines per pass.
+* **Performance**: Add index on bot column and 30-day retention pruning.
+* **Security**: MCP key no longer autoloads; uninstall removes telemetry consent options and rate-limit transients.
+* **Compat**: WordPress Coding Standards fixes across all files (462 auto-fixes).
+
 = 0.4.0 =
 * **Security**: Filter out static assets (CSS, JS, images, fonts) and WordPress internal paths — only content URLs are tracked.
 * **Security**: Remove query parameter authentication from MCP endpoint (keys in URLs leak to logs).
@@ -102,6 +118,9 @@ Yes. It requires authentication via `Authorization: Bearer` header or `X-AM-Key`
 * Initial release. Log parsing, bot identification, and basic rollup.
 
 == Upgrade Notice ==
+
+= 0.4.1 =
+Adds a one-time consent notice for optional diagnostics and includes error messages in telemetry events. Recommended update.
 
 = 0.4.0 =
 Security hardening release. Fixes static asset tracking, removes PII from telemetry, adds MCP rate limiting. Recommended for all users.

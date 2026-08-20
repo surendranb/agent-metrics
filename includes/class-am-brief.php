@@ -18,9 +18,9 @@ class AM_Brief {
 		$date = end( $dates );
 
 		$yesterday = gmdate( 'Y-m-d', time() - DAY_IN_SECONDS );
-		if ( $date === $yesterday ) {
+		if ( $yesterday === $date ) {
 			$label = 'yesterday';
-		} elseif ( $date === gmdate( 'Y-m-d' ) ) {
+		} elseif ( gmdate( 'Y-m-d' ) === $date ) {
 			$label = 'today';
 		} else {
 			$label = 'last activity: ' . $date;
@@ -39,7 +39,7 @@ class AM_Brief {
 		$top_bots = array();
 		$new_bots = array();
 		foreach ( $rollup['days'][ $date ] as $slug => $n ) {
-			$row = array(
+			$row        = array(
 				'bot'      => $slug,
 				'name'     => $rollup['bots'][ $slug ]['name'] ?? $slug,
 				'category' => $rollup['bots'][ $slug ]['category'] ?? 'unknown',
@@ -50,13 +50,23 @@ class AM_Brief {
 				$new_bots[] = $row;
 			}
 		}
-		usort( $top_bots, function ( $a, $b ) { return $b['hits'] <=> $a['hits']; } );
-		usort( $new_bots, function ( $a, $b ) { return $b['hits'] <=> $a['hits']; } );
+		usort(
+			$top_bots,
+			function ( $a, $b ) {
+				return $b['hits'] <=> $a['hits'];
+			}
+		);
+		usort(
+			$new_bots,
+			function ( $a, $b ) {
+				return $b['hits'] <=> $a['hits'];
+			}
+		);
 
 		$intents = array();
 		foreach ( $rollup['days'][ $date ] as $slug => $n ) {
-			$cat                     = $rollup['bots'][ $slug ]['category'] ?? 'unknown';
-			$intents[ $cat ]         = ( $intents[ $cat ] ?? 0 ) + $n;
+			$cat             = $rollup['bots'][ $slug ]['category'] ?? 'unknown';
+			$intents[ $cat ] = ( $intents[ $cat ] ?? 0 ) + $n;
 		}
 		arsort( $intents );
 
@@ -64,9 +74,17 @@ class AM_Brief {
 		$top_pages = array();
 		$new_pages = array();
 		foreach ( $day_pages as $path => $n ) {
-			$top_pages[] = array( 'path' => $path, 'hits' => $n );
+			$top_pages[] = array(
+				'path' => $path,
+				'hits' => $n,
+			);
 		}
-		usort( $top_pages, function ( $a, $b ) { return $b['hits'] <=> $a['hits']; } );
+		usort(
+			$top_pages,
+			function ( $a, $b ) {
+				return $b['hits'] <=> $a['hits'];
+			}
+		);
 
 		$seen_pages = array();
 		foreach ( $dates as $d ) {
@@ -79,14 +97,25 @@ class AM_Brief {
 		}
 		foreach ( $day_pages as $path => $n ) {
 			if ( ! isset( $seen_pages[ $path ] ) ) {
-				$new_pages[] = array( 'path' => $path, 'hits' => $n );
+				$new_pages[] = array(
+					'path' => $path,
+					'hits' => $n,
+				);
 			}
 		}
-		usort( $new_pages, function ( $a, $b ) { return $b['hits'] <=> $a['hits']; } );
+		usort(
+			$new_pages,
+			function ( $a, $b ) {
+				return $b['hits'] <=> $a['hits'];
+			}
+		);
 
 		$trend_days = array();
 		foreach ( $dates as $d ) {
-			$trend_days[] = array( 'date' => $d, 'hits' => array_sum( $rollup['days'][ $d ] ) );
+			$trend_days[] = array(
+				'date' => $d,
+				'hits' => array_sum( $rollup['days'][ $d ] ),
+			);
 		}
 		$trend_days = array_slice( $trend_days, -30 );
 

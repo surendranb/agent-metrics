@@ -5,27 +5,78 @@ class AM_Admin {
 
 	private static $charts = array();
 
+	const CONSENT      = 'am_telemetry_consent';
+	const CONSENT_RMD  = 'am_telemetry_consent_remind';
+
 	public static function menu() {
 		add_menu_page( 'AI Bot Traffic', 'AI Bot Traffic', 'manage_options', 'agent-metrics', array( __CLASS__, 'render' ), 'dashicons-chart-area', 26 );
+	}
+
+	public static function handle_consent() {
+		$choice = isset( $_GET['am_consent'] ) ? sanitize_key( $_GET['am_consent'] ) : '';
+		if ( ! in_array( $choice, array( 'yes', 'later', 'no' ), true ) || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		check_admin_referer( 'am_consent' );
+		if ( 'yes' === $choice ) {
+			AM_Telemetry::set_enabled( true );
+			update_option( self::CONSENT, 'yes', false );
+		} elseif ( 'later' === $choice ) {
+			update_option( self::CONSENT, 'later', false );
+			update_option( self::CONSENT_RMD, time() + 7 * DAY_IN_SECONDS, false );
+		} else {
+			update_option( self::CONSENT, 'no', false );
+		}
+		wp_safe_redirect( remove_query_arg( array( 'am_consent', '_wpnonce' ) ) );
+		exit;
+	}
+
+	public static function consent_notice() {
+		if ( ! current_user_can( 'manage_options' ) || AM_Telemetry::enabled() ) {
+			return;
+		}
+		$consent = get_option( self::CONSENT, '' );
+		if ( 'yes' === $consent || 'no' === $consent ) {
+			return;
+		}
+		if ( 'later' === $consent && (int) get_option( self::CONSENT_RMD, 0 ) > time() ) {
+			return;
+		}
+		$yes    = wp_nonce_url( add_query_arg( 'am_consent', 'yes' ), 'am_consent' );
+		$later  = wp_nonce_url( add_query_arg( 'am_consent', 'later' ), 'am_consent' );
+		$no     = wp_nonce_url( add_query_arg( 'am_consent', 'no' ), 'am_consent' );
+		$privacy = 'https://builditwithai.xyz/privacy/';
+		?>
+		<div class="notice notice-info" style="background:#fef6e4;border-left-color:#8bd3dd;padding:14px 16px">
+			<p style="margin:0 0 8px;font-weight:600;color:#001858">Help improve AI Bot Traffic Analytics</p>
+			<p style="margin:0 0 8px;color:#172c66">Optional anonymous diagnostics help me fix bugs and plan features. With your consent, the plugin shares health events only: version numbers, parse status and timing, tool usage, and error messages. <a href="<?php echo esc_url( $privacy ); ?>" target="_blank" rel="noopener noreferrer">Read the full list of events and fields</a>.</p>
+			<p style="margin:0;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+				<a href="<?php echo esc_url( $yes ); ?>" class="button button-primary" style="background:#f582ae;border-color:#f582ae;color:#001858">Enable diagnostics</a>
+				<a href="<?php echo esc_url( $later ); ?>" class="button">Remind me later</a>
+				<a href="<?php echo esc_url( $no ); ?>" class="button">Decline</a>
+			</p>
+		</div>
+		<?php
 	}
 
 	public static function render() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-		wp_enqueue_script( 'am-chart', plugins_url( 'assets/vendor/chart.umd.min.js', AM_PLUGIN_DIR . 'agent-metrics.php' ), array(), '4.4.9' );
+		wp_enqueue_script( 'am-chart', plugins_url( 'assets/vendor/chart.umd.min.js', AM_PLUGIN_DIR . 'agent-metrics.php' ), array(), '4.4.9', true );
 		if ( isset( $_POST['am_action'] ) && check_admin_referer( 'am_admin' ) ) {
 			if ( 'refresh' === $_POST['am_action'] ) {
 				AM_Rollup::invalidate();
 			}
 			if ( 'regenerate_key' === $_POST['am_action'] ) {
-				update_option( 'am_mcp_key', wp_generate_password( 32, false, false ) );
+				update_option( 'am_mcp_key', wp_generate_password( 32, false, false ), false );
 			}
 			if ( 'settings' === $_POST['am_action'] ) {
 				$val   = (int) ( $_POST['am_parse_interval_minutes'] ?? 0 );
 				$valid = array( 0, 5, 15, 30, 60, 180 );
 				update_option( 'am_parse_interval_minutes', in_array( $val, $valid, true ) ? $val : 0 );
 				AM_Telemetry::set_enabled( ! empty( $_POST['am_telemetry_enabled'] ) );
+				update_option( self::CONSENT, AM_Telemetry::enabled() ? 'yes' : get_option( self::CONSENT, '' ), false );
 			}
 		}
 		$rollup = AM_Rollup::get();
@@ -45,7 +96,13 @@ class AM_Admin {
 			</div>
 			<div style="display:flex;gap:6px;margin:18px 0 16px;border-bottom:2px solid #f3d2c1;padding-bottom:0">
 				<?php
-				$tabs = array( 'overview' => 'Overview', 'bots' => 'Bots', 'pages' => 'Pages', 'trends' => 'Trends', 'settings' => 'Settings' );
+				$tabs = array(
+					'overview' => 'Overview',
+					'bots'     => 'Bots',
+					'pages'    => 'Pages',
+					'trends'   => 'Trends',
+					'settings' => 'Settings',
+				);
 				foreach ( $tabs as $slug => $label ) :
 					$active = $slug === $tab;
 					?>
@@ -140,12 +197,12 @@ class AM_Admin {
 			update_option( 'am_telemetry_mcp_configured', true, false );
 			AM_Telemetry::send( 'mcp_configured', array( 'status' => 'success' ) );
 		}
-		$key      = get_option( 'am_mcp_key', '' );
-		$endpoint = rest_url( 'agent-metrics/v1/mcp' );
-		$interval = (int) get_option( 'am_parse_interval_minutes', 0 );
-		$auto     = 0 === $interval;
-		$current  = $auto ? AM_Rollup::interval() / MINUTE_IN_SECONDS : $interval;
-		$rec      = ! empty( $rollup['recommended_interval_min'] ) ? (int) $rollup['recommended_interval_min'] : 30;
+		$key       = get_option( 'am_mcp_key', '' );
+		$endpoint  = rest_url( 'agent-metrics/v1/mcp' );
+		$interval  = (int) get_option( 'am_parse_interval_minutes', 0 );
+		$auto      = 0 === $interval;
+		$current   = $auto ? AM_Rollup::interval() / MINUTE_IN_SECONDS : $interval;
+		$rec       = ! empty( $rollup['recommended_interval_min'] ) ? (int) $rollup['recommended_interval_min'] : 30;
 		$telemetry = AM_Telemetry::enabled();
 		?>
 		<div style="background:#fffffe;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,24,88,.08)">
@@ -174,7 +231,7 @@ class AM_Admin {
 					Share anonymous diagnostics (plugin and MCP health only)
 				</label>
 			</form>
-			<p style="margin:10px 0 0;color:#172c66;font-size:12px">Optional diagnostics include version, latency, and parse health. They never include site URLs, page paths, logs, traffic data, or MCP payloads. Cron runs when the site is visited; dashboard and agent reads refresh on demand if data is older than the interval.</p>
+			<p style="margin:10px 0 0;color:#172c66;font-size:12px">Optional diagnostics include version, latency, parse health, and error messages. They never include site URLs, page paths, logs, traffic data, or MCP payloads. Cron runs when the site is visited; dashboard and agent reads refresh on demand if data is older than the interval.</p>
 		</div>
 
 		<div style="background:#fffffe;border-radius:12px;padding:16px;margin-top:14px;box-shadow:0 1px 3px rgba(0,24,88,.08)">
@@ -200,19 +257,27 @@ class AM_Admin {
 	}
 
 	private static function render_bots( $rollup ) {
-		$cat    = isset( $_GET['am_cat'] ) && in_array( $_GET['am_cat'], array( 'training', 'search', 'on-demand' ), true ) ? $_GET['am_cat'] : '';
+		$cat      = isset( $_GET['am_cat'] ) && in_array( $_GET['am_cat'], array( 'training', 'search', 'on-demand' ), true ) ? $_GET['am_cat'] : '';
 		$bot_rows = array();
 		$total    = 0;
 		foreach ( $rollup['bots'] as $slug => $b ) {
 			if ( $cat && $b['category'] !== $cat ) {
 				continue;
 			}
-			$total += $b['hits'];
-			$bot_rows[] = array( 'slug' => $slug, 'name' => $b['name'], 'category' => $b['category'], 'hits' => $b['hits'] );
+			$total     += $b['hits'];
+			$bot_rows[] = array(
+				'slug'     => $slug,
+				'name'     => $b['name'],
+				'category' => $b['category'],
+				'hits'     => $b['hits'],
+			);
 		}
-		usort( $bot_rows, function ( $a, $b ) {
-			return $b['hits'] <=> $a['hits'];
-		} );
+		usort(
+			$bot_rows,
+			function ( $a, $b ) {
+				return $b['hits'] <=> $a['hits'];
+			}
+		);
 		$max_bot = $bot_rows ? max( array_column( $bot_rows, 'hits' ) ) : 1;
 		?>
 		<div style="background:#fffffe;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,24,88,.08)">
@@ -220,7 +285,12 @@ class AM_Admin {
 				<h2 style="margin:0;color:#001858">Bots</h2>
 				<div style="display:flex;gap:6px">
 					<?php
-					$chips = array( '' => 'All', 'training' => 'Training', 'search' => 'Search', 'on-demand' => 'On-demand' );
+					$chips = array(
+						''          => 'All',
+						'training'  => 'Training',
+						'search'    => 'Search',
+						'on-demand' => 'On-demand',
+					);
 					foreach ( $chips as $val => $label ) :
 						$active = $val === $cat;
 						?>
@@ -262,11 +332,17 @@ class AM_Admin {
 	private static function render_pages( $rollup, $brief ) {
 		$page_rows = array();
 		foreach ( $rollup['pages'] as $path => $n ) {
-			$page_rows[] = array( 'path' => $path, 'hits' => $n );
+			$page_rows[] = array(
+				'path' => $path,
+				'hits' => $n,
+			);
 		}
-		usort( $page_rows, function ( $a, $b ) {
-			return $b['hits'] <=> $a['hits'];
-		} );
+		usort(
+			$page_rows,
+			function ( $a, $b ) {
+				return $b['hits'] <=> $a['hits'];
+			}
+		);
 		$page_rows = array_slice( $page_rows, 0, 20 );
 		$max_page  = $page_rows ? max( array_column( $page_rows, 'hits' ) ) : 1;
 		$new_paths = array();
@@ -299,16 +375,21 @@ class AM_Admin {
 		$days = $rollup['days'];
 		ksort( $days );
 		$days = array_slice( $days, -30, 30, true );
-		$cats = array( 'training' => '#f582ae', 'search' => '#8bd3dd', 'on-demand' => '#f3d2c1' );
+		$cats = array(
+			'training'  => '#f582ae',
+			'search'    => '#8bd3dd',
+			'on-demand' => '#f3d2c1',
+		);
 		?>
 		<div style="background:#fffffe;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,24,88,.08)">
 			<h2 style="margin:0 0 10px;color:#001858">30-day trend by type</h2>
 			<?php if ( ! $days ) : ?>
 				<p style="color:#172c66">No data yet.</p>
 			<?php endif; ?>
-			<?php foreach ( $days as $day => $slugs ) :
-				$tot  = array_sum( $slugs );
-				$seg  = array();
+			<?php
+			foreach ( $days as $day => $slugs ) :
+				$tot = array_sum( $slugs );
+				$seg = array();
 				foreach ( $cats as $cat => $color ) {
 					$sum = 0;
 					foreach ( $slugs as $slug => $n ) {
@@ -317,7 +398,10 @@ class AM_Admin {
 						}
 					}
 					if ( $sum > 0 ) {
-						$seg[] = array( 'color' => $color, 'w' => round( 100 * $sum / $tot, 1 ) );
+						$seg[] = array(
+							'color' => $color,
+							'w'     => round( 100 * $sum / $tot, 1 ),
+						);
 					}
 				}
 				?>
@@ -354,22 +438,42 @@ class AM_Admin {
 
 	private static function render_yesterday_tables( $brief ) {
 		$tables = array(
-			'Top bots'  => array_map( function ( $b ) {
-				return array( $b['name'], number_format( $b['hits'] ) );
-			}, array_slice( $brief['top_bots'], 0, 5 ) ),
-			'Top pages' => array_map( function ( $p ) {
-				return array( $p['path'], number_format( $p['hits'] ) );
-			}, array_slice( $brief['top_pages'], 0, 5 ) ),
-			'New bots'  => array_map( function ( $b ) {
-				return array( $b['name'], number_format( $b['hits'] ) );
-			}, array_slice( $brief['new_bots'], 0, 5 ) ),
-			'New pages' => array_map( function ( $p ) {
-				return array( $p['path'], number_format( $p['hits'] ) );
-			}, array_slice( $brief['new_pages'], 0, 5 ) ),
-			'Intent'    => array_map( function ( $cat, $n ) {
-				$label = array( 'training' => 'Training', 'search' => 'Search', 'on-demand' => 'On-demand' );
-				return array( $label[ $cat ] ?? ucfirst( $cat ), number_format( $n ) );
-			}, array_keys( $brief['intents'] ), $brief['intents'] ),
+			'Top bots'  => array_map(
+				function ( $b ) {
+					return array( $b['name'], number_format( $b['hits'] ) );
+				},
+				array_slice( $brief['top_bots'], 0, 5 )
+			),
+			'Top pages' => array_map(
+				function ( $p ) {
+					return array( $p['path'], number_format( $p['hits'] ) );
+				},
+				array_slice( $brief['top_pages'], 0, 5 )
+			),
+			'New bots'  => array_map(
+				function ( $b ) {
+					return array( $b['name'], number_format( $b['hits'] ) );
+				},
+				array_slice( $brief['new_bots'], 0, 5 )
+			),
+			'New pages' => array_map(
+				function ( $p ) {
+					return array( $p['path'], number_format( $p['hits'] ) );
+				},
+				array_slice( $brief['new_pages'], 0, 5 )
+			),
+			'Intent'    => array_map(
+				function ( $cat, $n ) {
+					$label = array(
+						'training'  => 'Training',
+						'search'    => 'Search',
+						'on-demand' => 'On-demand',
+					);
+					return array( $label[ $cat ] ?? ucfirst( $cat ), number_format( $n ) );
+				},
+				array_keys( $brief['intents'] ),
+				$brief['intents']
+			),
 		);
 		?>
 		<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
@@ -397,24 +501,42 @@ class AM_Admin {
 	private static function render_mcp_panel() {
 		$key      = get_option( 'am_mcp_key', '' );
 		$endpoint = rest_url( 'agent-metrics/v1/mcp' );
-		$opencode = wp_json_encode( array(
-			'mcp' => array(
-				'agent-metrics' => array(
-					'type'    => 'remote',
-					'url'     => $endpoint,
-					'headers' => array( 'Authorization' => 'Bearer ' . $key ),
+		$opencode = wp_json_encode(
+			array(
+				'mcp' => array(
+					'agent-metrics' => array(
+						'type'    => 'remote',
+						'url'     => $endpoint,
+						'headers' => array( 'Authorization' => 'Bearer ' . $key ),
+					),
 				),
 			),
-		), JSON_UNESCAPED_SLASHES );
+			JSON_UNESCAPED_SLASHES
+		);
 		$claude   = 'claude mcp add agent-metrics --transport http ' . $endpoint . ' --header "Authorization: Bearer ' . $key . '"';
 		$cursor   = 'cursor mcp add agent-metrics --transport http ' . $endpoint . ' --header "Authorization: Bearer ' . $key . '"';
 		$clients  = array(
-			'opencode'    => array( 'monogram' => 'oc', 'bg' => '#001858', 'fg' => '#fef6e4', 'config' => $opencode ),
-			'Claude Code' => array( 'monogram' => 'CC', 'bg' => '#f582ae', 'fg' => '#001858', 'config' => $claude ),
-			'Cursor'      => array( 'monogram' => 'Cu', 'bg' => '#8bd3dd', 'fg' => '#001858', 'config' => $cursor ),
+			'opencode'    => array(
+				'monogram' => 'oc',
+				'bg'       => '#001858',
+				'fg'       => '#fef6e4',
+				'config'   => $opencode,
+			),
+			'Claude Code' => array(
+				'monogram' => 'CC',
+				'bg'       => '#f582ae',
+				'fg'       => '#001858',
+				'config'   => $claude,
+			),
+			'Cursor'      => array(
+				'monogram' => 'Cu',
+				'bg'       => '#8bd3dd',
+				'fg'       => '#001858',
+				'config'   => $cursor,
+			),
 		);
-		$names     = array_keys( $clients );
-		$default   = $clients['opencode'];
+		$names    = array_keys( $clients );
+		$default  = $clients['opencode'];
 		?>
 		<div style="display:flex;align-items:center;gap:12px;background:#fffffe;border-radius:12px;padding:10px 14px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,24,88,.08);flex-wrap:wrap">
 			<div style="display:flex;gap:8px">
@@ -453,24 +575,24 @@ class AM_Admin {
 		if ( ! $days ) {
 			return;
 		}
-		$delta = $trend['prev_total'] > 0 ? round( 100 * ( $trend['total'] - $trend['prev_total'] ) / $trend['prev_total'] ) : null;
-		$id    = 'am-chart-line';
+		$delta          = $trend['prev_total'] > 0 ? round( 100 * ( $trend['total'] - $trend['prev_total'] ) / $trend['prev_total'] ) : null;
+		$id             = 'am-chart-line';
 		self::$charts[] = array(
 			'id'     => $id,
 			'config' => array(
-				'type' => 'line',
-				'data' => array(
+				'type'    => 'line',
+				'data'    => array(
 					'labels'   => array_column( $days, 'date' ),
 					'datasets' => array(
 						array(
-							'label'             => 'Bot hits',
-							'data'              => array_column( $days, 'hits' ),
-							'borderColor'       => '#f582ae',
-							'backgroundColor'   => '#f582ae',
+							'label'                => 'Bot hits',
+							'data'                 => array_column( $days, 'hits' ),
+							'borderColor'          => '#f582ae',
+							'backgroundColor'      => '#f582ae',
 							'pointBackgroundColor' => '#001858',
-							'pointRadius'       => 3,
-							'tension'           => 0.25,
-							'fill'              => false,
+							'pointRadius'          => 3,
+							'tension'              => 0.25,
+							'fill'                 => false,
 						),
 					),
 				),
@@ -506,8 +628,12 @@ class AM_Admin {
 		if ( ! $days ) {
 			return;
 		}
-		$cats    = array( 'training' => '#f582ae', 'search' => '#8bd3dd', 'on-demand' => '#f3d2c1' );
-		$labels  = array_keys( $days );
+		$cats     = array(
+			'training'  => '#f582ae',
+			'search'    => '#8bd3dd',
+			'on-demand' => '#f3d2c1',
+		);
+		$labels   = array_keys( $days );
 		$datasets = array();
 		foreach ( $cats as $cat => $color ) {
 			$series = array();
@@ -530,12 +656,12 @@ class AM_Admin {
 				'stack'           => 'hits',
 			);
 		}
-		$id    = 'am-chart-area';
+		$id             = 'am-chart-area';
 		self::$charts[] = array(
 			'id'     => $id,
 			'config' => array(
-				'type' => 'line',
-				'data' => array(
+				'type'    => 'line',
+				'data'    => array(
 					'labels'   => $labels,
 					'datasets' => $datasets,
 				),
@@ -544,10 +670,10 @@ class AM_Admin {
 					'plugins'    => array( 'legend' => array( 'position' => 'bottom' ) ),
 					'scales'     => array(
 						'y' => array(
-							'stacked'    => true,
+							'stacked'     => true,
 							'beginAtZero' => true,
-							'ticks'      => array( 'precision' => 0 ),
-							'grid'       => array( 'color' => '#f3d2c1' ),
+							'ticks'       => array( 'precision' => 0 ),
+							'grid'        => array( 'color' => '#f3d2c1' ),
 						),
 						'x' => array(
 							'stacked' => true,

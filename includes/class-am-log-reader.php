@@ -4,6 +4,7 @@ defined( 'ABSPATH' ) || exit;
 class AM_Log_Reader {
 
 	const MAX_BYTES = 2 * 1024 * 1024;
+	const MAX_LINES = 5000;
 
 	public static function read( $path ) {
 		$lines = array();
@@ -62,26 +63,39 @@ class AM_Log_Reader {
 	public static function read_from( $path, $offset = 0 ) {
 		$h = @fopen( $path, 'rb' );
 		if ( ! $h ) {
-			return array( 'lines' => array(), 'offset' => $offset, 'inode' => null );
+			return array(
+				'lines'  => array(),
+				'offset' => $offset,
+				'inode'  => null,
+			);
 		}
-		$stat = @fstat( $h );
-		$size = (int) ( $stat['size'] ?? 0 );
+		$stat  = @fstat( $h );
+		$size  = (int) ( $stat['size'] ?? 0 );
 		$inode = (string) ( $stat['ino'] ?? '' );
 		if ( $offset > $size ) {
 			$offset = 0;
 		}
 		fseek( $h, $offset );
 		$lines = array();
-		while ( false !== ( $line = fgets( $h, 65536 ) ) ) {
+		$count = 0;
+		while ( $count < self::MAX_LINES && false !== ( $line = fgets( $h, 65536 ) ) ) {
 			$start = ftell( $h ) - strlen( $line );
 			if ( "\n" !== substr( $line, -1 ) ) {
 				fseek( $h, $start );
 				break;
 			}
-			$lines[] = array( 'line' => $line, 'offset' => $start );
+			$lines[] = array(
+				'line'   => $line,
+				'offset' => $start,
+			);
+			$count++;
 		}
 		$next = ftell( $h );
 		fclose( $h );
-		return array( 'lines' => $lines, 'offset' => $next, 'inode' => $inode );
+		return array(
+			'lines'  => $lines,
+			'offset' => $next,
+			'inode'  => $inode,
+		);
 	}
 }
