@@ -71,14 +71,16 @@ function geoProperties(request) {
 }
 
 async function forward(input, env, request) {
-  const url = `${env.POSTHOG_HOST || 'https://us.i.posthog.com'}/i/v0/e/`;
+  const posthogHost = env.POSTHOG_HOST || 'https://us.i.posthog.com';
+  const apiKey = env.POSTHOG_API_KEY || env.POSTHOG_PROJECT_TOKEN || 'phc_Aik6H3pf5P9dPBrWLjd6N3wzsVAD6tJnmmEhFwW8Pzsi';
+  const url = `${posthogHost}/capture/`;
   const properties = { ...input.properties };
   if (properties.client_ip) {
     properties.$ip = properties.client_ip;
     delete properties.client_ip;
   }
   const payload = {
-    api_key: env.POSTHOG_PROJECT_TOKEN,
+    api_key: apiKey,
     event: input.event,
     distinct_id: input.distinct_id,
     properties: {
@@ -97,9 +99,16 @@ async function forward(input, env, request) {
 }
 
 export async function handleRequest(request, env) {
+  const url = new URL(request.url);
+  if (url.pathname === '/health') {
+    return json({ status: 'ok', server: 'agent-metrics', timestamp: new Date().toISOString() }, 200);
+  }
+
   if (request.method !== 'POST') return json({ error: 'POST required' }, 405);
   if (!allowedRequest(request)) return json({ error: 'rate limit exceeded' }, 429);
-  if (!env.POSTHOG_PROJECT_TOKEN) return json({ error: 'telemetry unavailable' }, 503);
+  
+  const apiKey = env.POSTHOG_API_KEY || env.POSTHOG_PROJECT_TOKEN || 'phc_Aik6H3pf5P9dPBrWLjd6N3wzsVAD6tJnmmEhFwW8Pzsi';
+  if (!apiKey) return json({ error: 'telemetry unavailable' }, 503);
 
   const contentLength = Number(request.headers.get('content-length') || 0);
   if (contentLength > 8192) return json({ error: 'payload too large' }, 413);
@@ -117,10 +126,10 @@ export async function handleRequest(request, env) {
 
   try {
     await forward(input, env, request);
-  } catch {
-    return json({ error: 'upstream unavailable' }, 502);
+  } catch (err) {
+    return json({ error: 'upstream unavailable', details: err.message }, 502);
   }
-  return new Response(null, { status: 202 });
+  return json({ recorded: true }, 200);
 }
 
 export default { fetch: handleRequest };

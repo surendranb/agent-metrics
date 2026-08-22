@@ -22,7 +22,10 @@ class AM_Telemetry {
 	);
 
 	public static function enabled() {
-		return (bool) get_option( self::ENABLED, false );
+		if ( defined( 'AM_TELEMETRY_ENABLED' ) ) {
+			return (bool) AM_TELEMETRY_ENABLED;
+		}
+		return (bool) apply_filters( 'am_telemetry_enabled', (bool) get_option( self::ENABLED, false ) );
 	}
 
 	public static function set_enabled( $enabled ) {
