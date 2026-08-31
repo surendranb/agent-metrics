@@ -77,6 +77,7 @@ class AM_Admin {
 				update_option( 'am_parse_interval_minutes', in_array( $val, $valid, true ) ? $val : 0 );
 				AM_Telemetry::set_enabled( ! empty( $_POST['am_telemetry_enabled'] ) );
 				update_option( self::CONSENT, AM_Telemetry::enabled() ? 'yes' : get_option( self::CONSENT, '' ), false );
+				update_option( AM_Markdown::OPTION, ! empty( $_POST['am_agent_activity'] ) ? '1' : '0', false );
 			}
 		}
 		$rollup = AM_Rollup::get();
@@ -138,6 +139,9 @@ class AM_Admin {
 			self::render_parsing_notice();
 		} elseif ( $rollup['error'] ) {
 			self::render_diagnostics( $rollup );
+			if ( 'overview' === $tab ) {
+				self::render_agent_activity();
+			}
 		} elseif ( ! $brief && 'settings' !== $tab ) {
 			self::render_empty_state();
 		} else {
@@ -230,8 +234,13 @@ class AM_Admin {
 					<input type="checkbox" name="am_telemetry_enabled" value="1" <?php checked( $telemetry ); ?>>
 					Share anonymous diagnostics (plugin and MCP health only)
 				</label>
+				<label style="display:flex;align-items:center;gap:6px;color:#172c66;font-size:13px">
+					<input type="checkbox" name="am_agent_activity" value="1" <?php checked( AM_Markdown::enabled() ); ?>>
+					Agent activity surfaces (markdown, llms.txt, WebMCP bridge)
+				</label>
 			</form>
 			<p style="margin:10px 0 0;color:#172c66;font-size:12px">Optional diagnostics include version, latency, parse health, and error messages. They never include site URLs, page paths, logs, traffic data, or MCP payloads. Cron runs when the site is visited; dashboard and agent reads refresh on demand if data is older than the interval.</p>
+			<p style="margin:6px 0 0;color:#172c66;font-size:12px">Agent activity surfaces let AI agents read pages as markdown ({slug}.md), discover the site via /llms.txt, and use in-page WebMCP tools. When off, none of these are served or enqueued.</p>
 		</div>
 
 		<div style="background:#fffffe;border-radius:12px;padding:16px;margin-top:14px;box-shadow:0 1px 3px rgba(0,24,88,.08)">
@@ -250,7 +259,7 @@ class AM_Admin {
 			<code style="background:#fef6e4;border-radius:6px;padding:6px 10px;display:inline-block;color:#001858"><?php echo esc_html( $endpoint ); ?></code>
 			<p style="margin:12px 0 4px;color:#172c66;font-size:13px">API key</p>
 			<code style="background:#fef6e4;border-radius:6px;padding:6px 10px;display:inline-block;color:#001858"><?php echo esc_html( $key ); ?></code>
-			<p style="margin:12px 0 0;color:#172c66;font-size:13px">Tools: <strong>log_status, daily_brief, bot_summary, bot_breakdown, bot_trend, top_pages</strong>. Prompts: <strong>daily-brief, weekly-report, trend-analysis, investigate-spike</strong>.</p>
+			<p style="margin:12px 0 0;color:#172c66;font-size:13px">Tools: <strong>log_status, daily_brief, bot_summary, bot_breakdown, bot_trend, top_pages, agent_activity_summary</strong>. Prompts: <strong>daily-brief, weekly-report, trend-analysis, investigate-spike</strong>.</p>
 			<p style="margin:4px 0 0;color:#172c66;font-size:13px">Log file: <code style="background:#fef6e4;border-radius:4px;padding:1px 5px"><?php echo esc_html( $rollup['log_path'] ); ?></code></p>
 		</div>
 		<?php
@@ -433,6 +442,7 @@ class AM_Admin {
 
 		<?php self::render_hits_line( $brief ); ?>
 		<?php self::render_type_area( $rollup ); ?>
+		<?php self::render_agent_activity(); ?>
 		<?php
 	}
 
@@ -494,6 +504,108 @@ class AM_Admin {
 					</table>
 				</div>
 			<?php endforeach; ?>
+		</div>
+		<?php
+	}
+
+	private static function render_agent_activity() {
+		$s     = AM_Agent_Activity::summary( 30 );
+		$t     = $s['totals'];
+		$total = array_sum( $t );
+		$cards = array(
+			array( 'Markdown fetches', $t['markdown_fetches'] ),
+			array( 'llms.txt downloads', $t['llms_txt_downloads'] ),
+			array( 'WebMCP executions', $t['webmcp_executions'] ),
+		);
+		$pages    = array_slice( $s['by_page'], 0, 10 );
+		$max_page = $pages ? max( array_column( $pages, 'count' ) ) : 1;
+		$tools    = $s['by_tool'];
+		arsort( $tools );
+		$max_tool = $tools ? max( $tools ) : 1;
+		?>
+		<div style="background:#fffffe;border-radius:12px;padding:16px;margin-top:14px;box-shadow:0 1px 3px rgba(0,24,88,.08)">
+			<h2 style="margin:0 0 4px;color:#001858">Agent Activity</h2>
+			<p style="margin:0 0 12px;color:#172c66;font-size:13px">Markdown fetches, llms.txt downloads, and in-page WebMCP tool executions — last 30 days.</p>
+			<?php if ( ! $total ) : ?>
+				<p style="color:#172c66">No agent activity yet — this fills in when agents fetch markdown, download llms.txt, or run WebMCP tools on your pages.</p>
+			<?php else : ?>
+			<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px">
+				<?php foreach ( $cards as $c ) : ?>
+					<div style="background:#fef6e4;border-radius:10px;padding:12px;text-align:center">
+						<div style="font-size:24px;font-weight:700;color:#001858"><?php echo esc_html( number_format( $c[1] ) ); ?></div>
+						<div style="font-size:12px;color:#172c66"><?php echo esc_html( $c[0] ); ?></div>
+					</div>
+				<?php endforeach; ?>
+			</div>
+			<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px">
+				<div>
+					<h3 style="margin:0 0 8px;font-size:14px;color:#001858">WebMCP tools</h3>
+					<?php if ( ! $tools ) : ?>
+						<p style="color:#172c66;font-size:13px">No WebMCP executions yet.</p>
+					<?php else : ?>
+						<?php foreach ( $tools as $tool => $n ) : ?>
+							<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+								<span style="flex:1;font-size:12px;color:#172c66;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="<?php echo esc_attr( $tool ); ?>"><?php echo esc_html( $tool ); ?></span>
+								<div style="width:70px;background:#f3d2c1;border-radius:6px;height:10px">
+									<div style="background:#f582ae;border-radius:6px;height:10px;width:<?php echo esc_attr( round( 100 * $n / $max_tool ) ); ?>%"></div>
+								</div>
+								<span style="width:36px;text-align:right;font-size:12px;color:#001858"><?php echo esc_html( number_format( $n ) ); ?></span>
+							</div>
+						<?php endforeach; ?>
+					<?php endif; ?>
+				</div>
+				<div>
+					<h3 style="margin:0 0 8px;font-size:14px;color:#001858">Top pages by agents</h3>
+					<?php foreach ( $pages as $p ) : ?>
+						<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+							<span style="flex:1;font-size:12px;color:#172c66;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="<?php echo esc_attr( $p['page'] ); ?>"><?php echo esc_html( $p['page'] ); ?></span>
+							<div style="width:70px;background:#f3d2c1;border-radius:6px;height:10px">
+								<div style="background:#8bd3dd;border-radius:6px;height:10px;width:<?php echo esc_attr( round( 100 * $p['count'] / $max_page ) ); ?>%"></div>
+							</div>
+							<span style="width:36px;text-align:right;font-size:12px;color:#001858"><?php echo esc_html( number_format( $p['count'] ) ); ?></span>
+						</div>
+					<?php endforeach; ?>
+				</div>
+			</div>
+			<?php
+			$id             = 'am-chart-agent';
+			self::$charts[] = array(
+				'id'     => $id,
+				'config' => array(
+					'type'    => 'line',
+					'data'    => array(
+						'labels'   => array_column( $s['trend'], 'date' ),
+						'datasets' => array(
+							array(
+								'label'                => 'Agent events',
+								'data'                 => array_column( $s['trend'], 'count' ),
+								'borderColor'          => '#001858',
+								'backgroundColor'      => '#001858',
+								'pointBackgroundColor' => '#f582ae',
+								'pointRadius'          => 3,
+								'tension'              => 0.25,
+								'fill'                 => false,
+							),
+						),
+					),
+					'options' => array(
+						'responsive' => true,
+						'plugins'    => array( 'legend' => array( 'display' => false ) ),
+						'scales'     => array(
+							'y' => array(
+								'beginAtZero' => true,
+								'ticks'       => array( 'precision' => 0 ),
+								'grid'        => array( 'color' => '#f3d2c1' ),
+							),
+							'x' => array( 'grid' => array( 'display' => false ) ),
+						),
+					),
+				),
+			);
+			?>
+			<h3 style="margin:14px 0 10px;font-size:14px;color:#001858">30-day trend</h3>
+			<canvas id="<?php echo esc_attr( $id ); ?>" style="width:100%;max-height:220px"></canvas>
+			<?php endif; ?>
 		</div>
 		<?php
 	}

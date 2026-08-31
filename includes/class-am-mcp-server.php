@@ -227,6 +227,19 @@ class AM_MCP_Server {
 					),
 				),
 			),
+			array(
+				'name'        => 'agent_activity_summary',
+				'description' => 'Agent activity summary: markdown fetches, llms.txt downloads, and WebMCP tool executions — totals, by tool, by page, daily trend.',
+				'inputSchema' => array(
+					'type'       => 'object',
+					'properties' => array(
+						'days' => array(
+							'type'        => 'number',
+							'description' => 'Lookback window in days (default 30).',
+						),
+					),
+				),
+			),
 		);
 	}
 
@@ -341,6 +354,10 @@ class AM_MCP_Server {
 					}
 				);
 					$text = array( 'pages' => array_slice( $pages, 0, $limit ) );
+				break;
+			case 'agent_activity_summary':
+				$days = max( 1, min( 365, (int) ( $args['days'] ?? 30 ) ) );
+				$text = AM_Agent_Activity::summary( $days );
 				break;
 			default:
 				throw new Exception( 'Unknown tool: ' . esc_html( $name ) );
