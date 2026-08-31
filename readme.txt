@@ -90,6 +90,7 @@ Yes. It requires authentication via `Authorization: Bearer` header or `X-AM-Key`
 * **WebMCP bridge**: registers read-only `get_page_content`, `search_site`, `get_site_map` tools via the W3C WebMCP API where the browser supports it; executions beaconed as declared events.
 * **MCP**: new `agent_activity_summary` tool (totals, by-tool, by-page, trend); existing analytics tools unchanged.
 * **Dashboard**: new Agent Activity section — counters, by-tool table, per-page table, 30-day trend; renders independently of access-log health.
+* **Security**: rate-limit the public agent-activity beacon endpoint (60 requests/minute per IP; HTTP 429 over the cap).
 
 = 0.4.1 =
 * **Privacy**: One-time consent notice for optional diagnostics — Enable / Remind me later / Decline.
@@ -125,6 +126,9 @@ Yes. It requires authentication via `Authorization: Bearer` header or `X-AM-Key`
 * Initial release. Log parsing, bot identification, and basic rollup.
 
 == Upgrade Notice ==
+
+= 0.5.0 =
+Adds agent-activity measurement: markdown page endpoints, llms.txt curation, a WebMCP bridge, and a new dashboard section. Also rate-limits the public beacon endpoint.
 
 = 0.4.1 =
 Adds a one-time consent notice for optional diagnostics and includes error messages in telemetry events. Recommended update.

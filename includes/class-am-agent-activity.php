@@ -25,6 +25,19 @@ class AM_Agent_Activity {
 }
 
 	public static function record( $request ) {
+		// ponytail: transient-based rate limiter — 60 requests/minute per IP; upgrade to Redis if needed
+		$ip       = filter_var( $_SERVER['REMOTE_ADDR'] ?? '', FILTER_VALIDATE_IP );
+		$ip       = false === $ip ? 'unknown' : $ip;
+		$rate_key = 'am_beacon_rate_' . md5( $ip );
+		$count    = (int) get_transient( $rate_key );
+		if ( $count >= 60 ) {
+			return new WP_REST_Response(
+				array( 'error' => 'Rate limit exceeded. Try again in a minute.' ),
+				429
+			);
+		}
+		set_transient( $rate_key, $count + 1, 60 );
+
 		$body = json_decode( $request->get_body(), true );
 		if ( ! is_array( $body ) ) {
 			return new WP_REST_Response( array( 'error' => 'invalid JSON' ), 400 );
