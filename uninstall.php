@@ -28,7 +28,7 @@ delete_transient( 'am_rollup' );
 
 // Remove MCP rate-limit transients.
 $wpdb->query( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-	"DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_am_mcp_rate_%' OR option_name LIKE '_transient_timeout_am_mcp_rate_%'"
+	"DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_am_mcp_rate_%' OR option_name LIKE '_transient_timeout_am_mcp_rate_%' OR option_name LIKE '_transient_am_beacon_rate_%' OR option_name LIKE '_transient_timeout_am_beacon_rate_%'"
 );
 
 // Drop the hits table.

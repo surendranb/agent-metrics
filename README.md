@@ -40,6 +40,49 @@ The chart library is vendored in the plugin. The dashboard does not depend on a 
 
 ![Agent Metrics settings and MCP connection](screenshots/settings.png)
 
+## Agent-Ready Surfaces
+
+Every published page answers to agents in two shapes. The HTML page humans see, and a markdown twin agents read (v0.5.0):
+
+- `/{slug}.md` — the page as clean markdown with frontmatter (title, canonical URL, date).
+- `Accept: text/markdown` on the regular `/{slug}/` URL returns the same markdown; browsers keep getting HTML (`Vary: Accept` does the negotiation).
+- `Link` headers on the HTML page advertise both: `rel="alternate" type="text/markdown"` and `rel="describedby"` pointing at `/llms.txt`.
+
+The markdown carries `X-Robots-Tag: noindex` so search engines keep ranking the HTML original.
+
+Site-level surfaces:
+
+- `/llms.txt` and `/.well-known/llms.txt` — a site map written for agents. Ordering comes from real agent activity (which pages actually get fetched), with manual pins (Settings → Agent Activity) that always lead. Hard cap: 100 pages.
+- `/llms-full.txt` — every listed page in full markdown, separated by `<!-- page: slug -->` comments.
+
+All of this is recorded as measurement — see Agent Activity Measurement below.
+
+## WebMCP Bridge
+
+The plugin ships a small script (`assets/js/webmcp-bridge.js`) that registers 3 read-only tools on `document.modelContext` (the W3C WebMCP API — Chrome preview today):
+
+- `get_page_content` — the current page as markdown.
+- `search_site` — WordPress search (titles, URLs, excerpts).
+- `get_site_map` — the llms.txt site map.
+
+It is progressive enhancement: browsers without `document.modelContext` get a no-op, and nothing changes for human visitors. Every execution beacons `POST /wp-json/agent-metrics/v1/agent-activity` (rate-limited to 60 requests/minute per IP), so you see which tools in-browser agents actually run.
+
+One quirk if you test from Chrome DevTools: the WebMCP pane passes `executeTool` arguments as a JSON-encoded string rather than an object. `search_site` expects `{ query: "..." }` — parse the string before calling.
+
+## Agent Activity Measurement
+
+v0.5.0 adds a second measurement layer next to the access-log parsing. Intent `agent-activity` records two kinds of events in the same `wp_agent_metrics_hits` table:
+
+- **Inferred** — a request to `/{slug}.md` lands as `MarkdownFetch`; a download of `/llms.txt` lands as `LlmsTxt`.
+- **Declared** — a WebMCP execution lands as `WebMCP:{tool}` (e.g. `WebMCP:search_site`), beaconed by the browser itself.
+
+Where it shows up:
+
+- The dashboard gains an **Agent Activity** section: counters, by-tool table, per-page table, 30-day trend. It renders independently of access-log health — the section works even when the log reader finds nothing.
+- The MCP endpoint gains a 7th tool, `agent_activity_summary` (totals, by tool, by page, daily trend; optional `days` argument, default 30).
+
+Toggle it per site under **AI Bot Traffic → Settings → Agent Activity** (default: on).
+
 ## Install
 
 ### WordPress admin
@@ -107,6 +150,7 @@ Available tools:
 - `bot_breakdown`
 - `bot_trend`
 - `top_pages`
+- `agent_activity_summary`
 
 Available prompts:
 
