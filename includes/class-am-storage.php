@@ -85,6 +85,30 @@ class AM_Storage {
 		return 1 === $result;
 	}
 
+	public static function insert_agent_event( $path, $ua, $status = 200 ) {
+		global $wpdb;
+		// ponytail: microsecond offset avoids source_position collisions; INSERT IGNORE covers the tie case
+		return $wpdb->query(
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				'INSERT IGNORE INTO ' . self::table() . '
+				(timestamp, method, path, status_code, user_agent, is_bot, operator, bot, intent, source_file, source_inode, source_offset)
+				VALUES (%s, %s, %s, %d, %s, 1, %s, %s, %s, %s, %s, %d)',
+				gmdate( 'Y-m-d H:i:s' ),
+				'GET',
+				$path,
+				$status,
+				$ua,
+				'MarkdownFetch',
+				'MarkdownFetch',
+				'agent-activity',
+				'agent-activity',
+				'0',
+				(int) ( microtime( true ) * 1000000 )
+			)
+		);
+	}
+
 	public static function prune( $days = self::RETENTION_DAYS ) {
 		global $wpdb;
 		$cutoff = gmdate( 'Y-m-d H:i:s', time() - $days * DAY_IN_SECONDS );

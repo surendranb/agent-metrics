@@ -3,7 +3,7 @@ Contributors: surendranb
 Tags: ai, bots, analytics, mcp, crawlers
 Requires at least: 6.0
 Tested up to: 6.8
-Stable tag: 0.4.1
+Stable tag: 0.5.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -83,6 +83,13 @@ Yes. It requires authentication via `Authorization: Bearer` header or `X-AM-Key`
 2. Settings page with MCP connection snippets and parse frequency.
 
 == Changelog ==
+
+= 0.5.0 =
+* **Agent Activity**: new measurement layer — `/{slug}.md` endpoint, `Accept: text/markdown` negotiation, `Link` headers, recorded as `agent-activity`/`MarkdownFetch` hits.
+* **Agent Activity**: `/llms.txt`, `/.well-known/llms.txt`, and `/llms-full.txt` — ordering curated from real agent activity, manual pins supported.
+* **WebMCP bridge**: registers read-only `get_page_content`, `search_site`, `get_site_map` tools via the W3C WebMCP API where the browser supports it; executions beaconed as declared events.
+* **MCP**: new `agent_activity_summary` tool (totals, by-tool, by-page, trend); existing analytics tools unchanged.
+* **Dashboard**: new Agent Activity section — counters, by-tool table, per-page table, 30-day trend; renders independently of access-log health.
 
 = 0.4.1 =
 * **Privacy**: One-time consent notice for optional diagnostics — Enable / Remind me later / Decline.
