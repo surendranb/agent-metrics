@@ -35,8 +35,8 @@ test('accepts an allowlisted event and forwards only the canonical payload', asy
   Object.defineProperty(geoRequest, 'cf', { value: { continent: 'AS', country: 'IN', region: 'TN', city: 'Chennai' } });
   const response = await handleRequest(geoRequest, env);
   globalThis.fetch = originalFetch;
-  assert.equal(response.status, 202);
-  assert.equal(forwarded.url, 'https://posthog.test/i/v0/e/');
+  assert.equal(response.status, 200);
+  assert.equal(forwarded.url, 'https://posthog.test/capture/');
   assert.equal(forwarded.body.event, 'mcp_started');
   assert.equal(forwarded.body.properties.surface, 'mcp');
   assert.equal(forwarded.body.properties.telemetry_received_at !== undefined, true);
@@ -52,6 +52,7 @@ test('rejects unknown properties', async () => {
 
 test('rejects unknown events', async () => {
   const invalid = {
+    url: 'https://agent-metrics.test/v1/events',
     method: 'POST',
     headers: new Headers({ 'content-length': '1' }),
     text: async () => JSON.stringify({ ...base, event: 'raw_log' }),
@@ -60,11 +61,22 @@ test('rejects unknown events', async () => {
   assert.equal(response.status, 400);
 });
 
-test('returns upstream failure without exposing details', async () => {
+test('returns upstream failure with status detail', async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response('', { status: 500 });
   const response = await handleRequest(request(base), env);
   globalThis.fetch = originalFetch;
   assert.equal(response.status, 502);
-  assert.deepEqual(await response.json(), { error: 'upstream unavailable' });
+  assert.deepEqual(await response.json(), { error: 'upstream unavailable', details: 'PostHog returned 500' });
+});
+
+test('fails loud (503, no forward) when the PostHog token binding is missing', async () => {
+  const originalFetch = globalThis.fetch;
+  let forwarded = false;
+  globalThis.fetch = async () => { forwarded = true; return new Response('', { status: 200 }); };
+  const response = await handleRequest(request(base), { POSTHOG_HOST: 'https://posthog.test' });
+  globalThis.fetch = originalFetch;
+  assert.equal(response.status, 503);
+  assert.equal(forwarded, false);
+  assert.equal((await response.json()).error.includes('binding missing'), true);
 });
