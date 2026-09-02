@@ -102,7 +102,7 @@ class AM_Rollup {
 		$min = (int) get_option( 'am_parse_interval_minutes', 0 );
 		if ( 0 === $min ) {
 			$last = get_transient( self::TRANSIENT );
-			$min  = ( is_array( $last ) && ! empty( $last['recommended_interval_min'] ) ) ? (int) $last['recommended_interval_min'] : 30;
+			$min  = ( is_array( $last ) && ! empty( $last['recommended_interval_min'] ) ) ? (int) $last['recommended_interval_min'] : 5;
 		}
 		return max( 5, $min ) * MINUTE_IN_SECONDS;
 	}
