@@ -1,0 +1,3 @@
+/telemetry-worker export-ignore
+/.gitignore export-ignore
+/.gitattributes export-ignore
