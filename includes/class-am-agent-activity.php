@@ -26,7 +26,8 @@ class AM_Agent_Activity {
 
 	public static function record( $request ) {
 		// ponytail: transient-based rate limiter — 60 requests/minute per IP; upgrade to Redis if needed
-		$ip       = filter_var( $_SERVER['REMOTE_ADDR'] ?? '', FILTER_VALIDATE_IP );
+		$raw_ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? wp_unslash( $_SERVER['REMOTE_ADDR'] ) : '';
+		$ip       = filter_var( $raw_ip, FILTER_VALIDATE_IP );
 		$ip       = false === $ip ? 'unknown' : $ip;
 		$rate_key = 'am_beacon_rate_' . md5( $ip );
 		$count    = (int) get_transient( $rate_key );
@@ -54,8 +55,9 @@ class AM_Agent_Activity {
 		if ( ! AM_Markdown::enabled() ) {
 			return;
 		}
-		$path = isset( $_SERVER['REQUEST_URI'] ) ? wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH ) : '';
-		$path = is_string( $path ) ? rtrim( $path, '/' ) : '';
+		$raw_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+		$path    = wp_parse_url( $raw_uri, PHP_URL_PATH );
+		$path    = is_string( $path ) ? rtrim( $path, '/' ) : '';
 		if ( ! in_array( $path, array( '/llms.txt', '/.well-known/llms.txt', '/llms-full.txt' ), true ) ) {
 			return;
 		}

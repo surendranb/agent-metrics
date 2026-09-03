@@ -110,16 +110,18 @@ class AM_Admin {
 				update_option( 'am_mcp_key', wp_generate_password( 32, false, false ), false );
 			}
 			if ( 'settings' === $_POST['am_action'] ) {
-				$val   = (int) ( $_POST['am_parse_interval_minutes'] ?? 0 );
-				$valid = array( 0, 5, 15, 30, 60, 180 );
+				$raw_val = isset( $_POST['am_parse_interval_minutes'] ) ? sanitize_text_field( wp_unslash( $_POST['am_parse_interval_minutes'] ) ) : '0';
+				$val     = (int) $raw_val;
+				$valid   = array( 0, 5, 15, 30, 60, 180 );
 				update_option( 'am_parse_interval_minutes', in_array( $val, $valid, true ) ? $val : 0 );
 				AM_Telemetry::set_enabled( ! empty( $_POST['am_telemetry_enabled'] ) );
 				update_option( self::CONSENT, AM_Telemetry::enabled() ? 'yes' : get_option( self::CONSENT, '' ), false );
 				update_option( AM_Markdown::OPTION, ! empty( $_POST['am_agent_activity'] ) ? '1' : '0', false );
 			}
 		}
-		$rollup = AM_Rollup::get();
-		$tab    = isset( $_GET['am_tab'] ) && in_array( $_GET['am_tab'], array( 'overview', 'bots', 'pages', 'trends', 'settings' ), true ) ? $_GET['am_tab'] : 'overview';
+		$rollup  = AM_Rollup::get();
+		$raw_tab = isset( $_GET['am_tab'] ) ? sanitize_key( wp_unslash( $_GET['am_tab'] ) ) : '';
+		$tab     = in_array( $raw_tab, array( 'overview', 'bots', 'pages', 'trends', 'settings' ), true ) ? $raw_tab : 'overview';
 		?>
 		<div class="wrap" style="background:#fef6e4;min-height:100vh;margin:0;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#172c66">
 			<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
@@ -316,7 +318,8 @@ class AM_Admin {
 	}
 
 	private static function render_bots( $rollup ) {
-		$cat      = isset( $_GET['am_cat'] ) && in_array( $_GET['am_cat'], array( 'training', 'search', 'on-demand' ), true ) ? $_GET['am_cat'] : '';
+		$raw_cat  = isset( $_GET['am_cat'] ) ? sanitize_key( wp_unslash( $_GET['am_cat'] ) ) : '';
+		$cat      = in_array( $raw_cat, array( 'training', 'search', 'on-demand' ), true ) ? $raw_cat : '';
 		$bot_rows = array();
 		$total    = 0;
 		foreach ( $rollup['bots'] as $slug => $b ) {
@@ -809,10 +812,10 @@ class AM_Admin {
 				$series[] = $n;
 			}
 			$datasets[] = array(
-				'label'           => $cat,
+				'label'           => esc_html( $cat ),
 				'data'            => $series,
-				'backgroundColor' => $color . '99',
-				'borderColor'     => $color,
+				'backgroundColor' => esc_attr( $color . '99' ),
+				'borderColor'     => esc_attr( $color ),
 				'fill'            => true,
 				'tension'         => 0.25,
 				'stack'           => 'hits',

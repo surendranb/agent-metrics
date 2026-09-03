@@ -1,14 +1,14 @@
 === Agent Ready — Markdown Twins, llms.txt, WebMCP & AI Agent Analytics ===
 Contributors: surendranb
-Tags: ai, markdown, analytics, crawlers, mcp, llmstxt, webmcp, bot-traffic, rest-api, agentic, seo, server-logs
+Tags: ai, markdown, analytics, crawlers, mcp
 Requires at least: 6.0
-Tested up to: 6.8
+Tested up to: 7.1
 Stable tag: 0.5.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Make your WordPress site agent-ready with markdown twins, dynamic llms.txt, and WebMCP, while tracking AI crawler traffic and bot intent from access logs.
+Make WordPress agent-ready with Markdown twins, llms.txt, and WebMCP, while tracking AI crawler traffic and bot intent from server logs.
 
 == Description ==
 
