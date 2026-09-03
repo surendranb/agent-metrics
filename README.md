@@ -1,14 +1,10 @@
-# Agent Metrics
+# Agent Ready
 
-**See which AI bots crawl your WordPress site, what they request, and why.**
+**Make your WordPress site agent-ready with Markdown twins, dynamic llms.txt, and WebMCP, while tracking AI crawler traffic and bot intent from access logs.**
 
-Agent Metrics is a free WordPress plugin for turning server access logs into an AI bot traffic report. It identifies bots such as GPTBot, ClaudeBot, PerplexityBot, Google-Extended, Bytespider, Common Crawl, and Bingbot, then groups their activity by intent:
+Agent Ready transforms WordPress into native infrastructure for the agentic web. It arms your site with markdown twins (`/{slug}.md`), dynamic `llms.txt`, and a W3C WebMCP bridge for browser assistants, while providing granular, zero-overhead intelligence into how 42+ AI bots (GPTBot, ClaudeBot, PerplexityBot, etc.) crawl and consume your content.
 
-- **Training**: crawlers collecting material for model development.
-- **Search**: crawlers building indexes used to answer current questions.
-- **On-demand**: fetchers retrieving a page because a person asked an assistant for it.
-
-The plugin keeps the data on your WordPress site. It does not send logs to a third-party analytics service.
+The plugin keeps all data local to your WordPress site. It does not send logs or content to a third-party analytics service.
 
 ## Why This Exists
 
