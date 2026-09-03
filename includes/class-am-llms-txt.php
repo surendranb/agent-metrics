@@ -27,15 +27,17 @@ class AM_Llms_Txt {
 		if ( ! AM_Markdown::enabled() ) {
 			return;
 		}
-		$path = isset( $_SERVER['REQUEST_URI'] ) ? wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH ) : '';
-		$path = is_string( $path ) ? rtrim( $path, '/' ) : '';
-		$full = '/llms-full.txt' === $path;
+		$raw_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+		$path    = wp_parse_url( $raw_uri, PHP_URL_PATH );
+		$path    = is_string( $path ) ? rtrim( $path, '/' ) : '';
+		$full    = '/llms-full.txt' === $path;
 		if ( ! $full && '/llms.txt' !== $path && '/.well-known/llms.txt' !== $path ) {
 			return;
 		}
 		header( 'Content-Type: text/plain; charset=utf-8' );
 		status_header( 200 );
 		nocache_headers();
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Plain text representation for llms.txt.
 		echo $full ? self::full() : self::txt();
 		exit;
 	}

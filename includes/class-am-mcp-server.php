@@ -35,7 +35,7 @@ class AM_MCP_Server {
 
 	public static function handle( $request ) {
 		// ponytail: transient-based rate limiter — 120 requests/minute per IP; upgrade to Redis if needed
-		$raw_ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? wp_unslash( $_SERVER['REMOTE_ADDR'] ) : '';
+		$raw_ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 		$ip       = filter_var( $raw_ip, FILTER_VALIDATE_IP );
 		$ip       = false === $ip ? 'unknown' : $ip;
 		$rate_key = 'am_mcp_rate_' . md5( $ip );
