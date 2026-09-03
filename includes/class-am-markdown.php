@@ -92,7 +92,7 @@ class AM_Markdown {
 		$md_url = home_url( $path . '.md' );
 		header( 'Link: <' . esc_url( $md_url ) . '>; rel="alternate"; type="text/markdown", <' . esc_url( home_url( '/llms.txt' ) ) . '>; rel="describedby"' );
 		header( 'Vary: Accept' );
-		$accept = isset( $_SERVER['HTTP_ACCEPT'] ) ? $_SERVER['HTTP_ACCEPT'] : '';
+		$accept = isset( $_SERVER['HTTP_ACCEPT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_ACCEPT'] ) ) : '';
 		if ( false !== stripos( $accept, 'text/markdown' ) ) {
 			self::serve( $post->post_name, true );
 		}
@@ -108,10 +108,12 @@ class AM_Markdown {
 		header( 'X-Robots-Tag: noindex' );
 		header( 'Link: <' . esc_url( $html_url ) . '>; rel="canonical"' );
 		header( 'Vary: Accept' );
+		$ua = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
 		AM_Storage::insert_agent_event(
 			$negotiated ? wp_parse_url( $html_url, PHP_URL_PATH ) : '/' . $slug . '.md',
-			isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : ''
+			$ua
 		);
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Direct text/markdown output.
 		echo self::render( $post->ID );
 		exit;
 	}
@@ -369,14 +371,14 @@ class AM_Markdown {
 	}
 
 	private static function text( $html ) {
-		$t = strip_tags( self::strip_comments( (string) $html ) );
+		$t = function_exists( 'wp_strip_all_tags' ) ? wp_strip_all_tags( self::strip_comments( (string) $html ) ) : strip_tags( self::strip_comments( (string) $html ) );
 		$t = self::entity_decode( $t );
 		$t = preg_replace( '/\s+/', ' ', $t );
 		return trim( $t );
 	}
 
 	private static function strip_tags_keep_newlines( $html ) {
-		return strip_tags( (string) $html );
+		return function_exists( 'wp_strip_all_tags' ) ? wp_strip_all_tags( (string) $html ) : strip_tags( (string) $html );
 	}
 
 	private static function entity_decode( $s ) {
