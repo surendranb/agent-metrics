@@ -1,14 +1,10 @@
-# Agent Metrics
+# Agent Ready
 
-**See which AI bots crawl your WordPress site, what they request, and why.**
+**Make your WordPress site agent-ready with Markdown twins, dynamic llms.txt, and WebMCP, while tracking AI crawler traffic and bot intent from access logs.**
 
-Agent Metrics is a free WordPress plugin for turning server access logs into an AI bot traffic report. It identifies bots such as GPTBot, ClaudeBot, PerplexityBot, Google-Extended, Bytespider, Common Crawl, and Bingbot, then groups their activity by intent:
+Agent Ready transforms WordPress into native infrastructure for the agentic web. It arms your site with markdown twins (`/{slug}.md`), dynamic `llms.txt`, and a W3C WebMCP bridge for browser assistants, while providing granular, zero-overhead intelligence into how 42+ AI bots (GPTBot, ClaudeBot, PerplexityBot, etc.) crawl and consume your content.
 
-- **Training**: crawlers collecting material for model development.
-- **Search**: crawlers building indexes used to answer current questions.
-- **On-demand**: fetchers retrieving a page because a person asked an assistant for it.
-
-The plugin keeps the data on your WordPress site. It does not send logs to a third-party analytics service.
+The plugin keeps all data local to your WordPress site. It does not send logs or content to a third-party analytics service.
 
 ## Why This Exists
 
@@ -20,7 +16,7 @@ AI crawlers are already hitting public websites, but ordinary analytics reports 
 - Did a new bot or page appear yesterday?
 - Is traffic growing because of a crawl, a search index refresh, or an assistant fetch?
 
-Agent Metrics answers those questions from the access log your server already produces.
+Agent Ready answers those questions from the access log your server already produces.
 
 ## Dashboard
 
@@ -36,9 +32,9 @@ The WordPress admin screen includes:
 
 The chart library is vendored in the plugin. The dashboard does not depend on a CDN.
 
-![Agent Metrics overview](screenshots/overview.png)
+![Agent Ready overview](assets/screenshot-1.png)
 
-![Agent Metrics settings and MCP connection](screenshots/settings.png)
+![Agent Ready settings and MCP connection](assets/screenshot-2.png)
 
 ## Agent-Ready Surfaces
 
@@ -81,7 +77,7 @@ Where it shows up:
 - The dashboard gains an **Agent Activity** section: counters, by-tool table, per-page table, 30-day trend. It renders independently of access-log health — the section works even when the log reader finds nothing.
 - The MCP endpoint gains a 7th tool, `agent_activity_summary` (totals, by tool, by page, daily trend; optional `days` argument, default 30).
 
-Toggle it per site under **AI Bot Traffic → Settings → Agent Activity** (default: on).
+Toggle it per site under **Agent Ready → Settings → Agent Activity** (default: on).
 
 ## Install
 
@@ -89,8 +85,8 @@ Toggle it per site under **AI Bot Traffic → Settings → Agent Activity** (def
 
 1. Download the repository as a ZIP from [GitHub](https://github.com/surendranb/agent-metrics).
 2. In WordPress, open **Plugins → Add New → Upload Plugin**.
-3. Upload the ZIP and activate **AI Bot Traffic Analytics**.
-4. Open **AI Bot Traffic** in the admin menu.
+3. Upload the ZIP and activate **Agent Ready**.
+4. Open **Agent Ready** in the admin menu.
 
 ### Server
 
@@ -99,7 +95,7 @@ cd wp-content/plugins
 git clone https://github.com/surendranb/agent-metrics.git agent-metrics
 ```
 
-Activate the plugin in WordPress, then open the **AI Bot Traffic** screen.
+Activate the plugin in WordPress, then open the **Agent Ready** screen.
 
 ## Log Discovery
 
@@ -118,7 +114,7 @@ For a managed host, define the exact readable file path in `wp-config.php` befor
 define( 'AM_LOG_PATH', '/home/example/logs/access.log' );
 ```
 
-The web-server user must be able to read the file. Open **AI Bot Traffic → Diagnostics** to see every path tested and why it was accepted or rejected.
+The web-server user must be able to read the file. Open **Agent Ready → Settings** to see every path tested and why it was accepted or rejected.
 
 ## Supported Log Shape
 
@@ -136,7 +132,7 @@ Cloudflare dashboard exports are not read directly. Use an origin access log or 
 
 The plugin exposes a protected JSON-RPC MCP endpoint so an AI agent can query the same rollup shown in WordPress.
 
-After activation, open **AI Bot Traffic → Settings** and copy the endpoint and generated API key. The endpoint is:
+After activation, open **Agent Ready → Settings** and copy the endpoint and generated API key. The endpoint is:
 
 ```text
 https://your-site.example/wp-json/agent-metrics/v1/mcp
@@ -163,7 +159,7 @@ The settings screen includes copy-ready connection snippets for OpenCode, Claude
 
 ## Anonymous Diagnostics
 
-Anonymous diagnostics are disabled by default. An administrator can enable them under **AI Bot Traffic → Settings** to share plugin and MCP health metadata with the Agent Metrics project. This includes product version, event type, status, latency, and parse health. It never includes the site URL, page paths, user agents, access logs, bot traffic, WordPress content, MCP arguments, MCP results, or credentials. The setting and anonymous installation ID are removed when the plugin is uninstalled.
+Anonymous diagnostics are disabled by default. An administrator can enable them under **Agent Ready → Settings** to share plugin and MCP health metadata with the Agent Ready project. This includes product version, event type, status, latency, and parse health. It never includes the site URL, page paths, user agents, access logs, bot traffic, WordPress content, MCP arguments, MCP results, or credentials. The setting and anonymous installation ID are removed when the plugin is uninstalled.
 
 ## Bot Catalog
 
@@ -180,7 +176,7 @@ Bot discovery and naming research is informed by [Cloudflare Radar's Bot Directo
 
 ## Data Storage
 
-Agent Metrics stores every valid parsed request in a persistent WordPress table named with the site's table prefix, such as `wp_agent_metrics_hits`. Human and bot requests are both retained indefinitely in the MVP. Dashboard and MCP reports are derived from SQL queries over those event rows.
+Agent Ready stores every valid parsed request in a persistent WordPress table named with the site's table prefix, such as `wp_agent_metrics_hits`. Human and bot requests are both retained indefinitely in the MVP. Dashboard and MCP reports are derived from SQL queries over those event rows.
 
 The plugin tracks the active log file and byte offset so repeated refreshes do not duplicate requests. When a host rotates its logs, the plugin detects the new file and continues ingesting from its beginning. Historical rows remain available after the original log file is deleted.
 

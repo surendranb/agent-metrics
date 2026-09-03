@@ -72,7 +72,7 @@ function geoProperties(request) {
 
 async function forward(input, env, request) {
   const posthogHost = env.POSTHOG_HOST || 'https://us.i.posthog.com';
-  const apiKey = env.POSTHOG_API_KEY || env.POSTHOG_PROJECT_TOKEN || 'phc_Aik6H3pf5P9dPBrWLjd6N3wzsVAD6tJnmmEhFwW8Pzsi';
+  const apiKey = env.POSTHOG_API_KEY || env.POSTHOG_PROJECT_TOKEN;
   const url = `${posthogHost}/capture/`;
   const properties = { ...input.properties };
   if (properties.client_ip) {
@@ -107,8 +107,11 @@ export async function handleRequest(request, env) {
   if (request.method !== 'POST') return json({ error: 'POST required' }, 405);
   if (!allowedRequest(request)) return json({ error: 'rate limit exceeded' }, 429);
   
-  const apiKey = env.POSTHOG_API_KEY || env.POSTHOG_PROJECT_TOKEN || 'phc_Aik6H3pf5P9dPBrWLjd6N3wzsVAD6tJnmmEhFwW8Pzsi';
-  if (!apiKey) return json({ error: 'telemetry unavailable' }, 503);
+  const apiKey = env.POSTHOG_API_KEY || env.POSTHOG_PROJECT_TOKEN;
+  if (!apiKey) {
+    console.error('telemetry: PostHog token binding missing (set secret_text POSTHOG_PROJECT_TOKEN)');
+    return json({ error: 'telemetry unavailable: PostHog token binding missing' }, 503);
+  }
 
   const contentLength = Number(request.headers.get('content-length') || 0);
   if (contentLength > 8192) return json({ error: 'payload too large' }, 413);

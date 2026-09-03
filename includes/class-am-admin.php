@@ -9,10 +9,16 @@ class AM_Admin {
 	const CONSENT_RMD  = 'am_telemetry_consent_remind';
 
 	public static function menu() {
-		add_menu_page( 'AI Bot Traffic', 'AI Bot Traffic', 'manage_options', 'agent-metrics', array( __CLASS__, 'render' ), 'dashicons-chart-area', 26 );
+		add_menu_page( 'Agent Ready: AI Readiness & Agent Analytics', 'Agent Ready', 'manage_options', 'agent-metrics', array( __CLASS__, 'render' ), 'dashicons-chart-area', 26 );
 	}
 
 	public static function handle_consent() {
+		if ( isset( $_GET['am_dismiss_advocacy'] ) && current_user_can( 'manage_options' ) ) {
+			check_admin_referer( 'am_dismiss_advocacy' );
+			update_option( 'am_advocacy_dismissed', 'yes', false );
+			wp_safe_redirect( remove_query_arg( array( 'am_dismiss_advocacy', '_wpnonce' ) ) );
+			exit;
+		}
 		$choice = isset( $_GET['am_consent'] ) ? sanitize_key( $_GET['am_consent'] ) : '';
 		if ( ! in_array( $choice, array( 'yes', 'later', 'no' ), true ) || ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -29,6 +35,38 @@ class AM_Admin {
 		}
 		wp_safe_redirect( remove_query_arg( array( 'am_consent', '_wpnonce' ) ) );
 		exit;
+	}
+
+	public static function advocacy_notice() {
+		if ( ! current_user_can( 'manage_options' ) || get_option( 'am_advocacy_dismissed' ) ) {
+			return;
+		}
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || 'toplevel_page_agent-metrics' !== $screen->id ) {
+			return;
+		}
+		$rollup         = AM_Rollup::get();
+		$total_hits     = (int) ( $rollup['totals']['total_hits'] ?? 0 );
+		$activity       = AM_Agent_Activity::summary( 30 );
+		$total_activity = array_sum( $activity['totals'] ?? array() );
+		$total_events   = $total_hits + $total_activity;
+		if ( $total_events < 50 ) {
+			return;
+		}
+		$dismiss = wp_nonce_url( add_query_arg( 'am_dismiss_advocacy', '1' ), 'am_dismiss_advocacy' );
+		?>
+		<div class="notice notice-info is-dismissible" style="background:#fef6e4;border-left-color:#f582ae;padding:12px 16px;margin:16px 0">
+			<p style="margin:0 0 8px;font-size:13px;color:#001858">
+				<strong>Agent Ready has recorded <?php echo esc_html( number_format( $total_events ) ); ?> AI crawler and agent requests!</strong>
+				If you find this plugin valuable, please consider starring the project on GitHub or sharing it with fellow developers.
+			</p>
+			<div style="display:flex;gap:12px;align-items:center">
+				<a href="https://github.com/surendranb/agent-metrics" target="_blank" class="button" style="background:#001858;color:#fffffe;border:none;font-weight:600">⭐ Star on GitHub</a>
+				<a href="<?php echo esc_url( 'https://twitter.com/intent/tweet?text=' . rawurlencode( 'Making my WordPress site AI agent-ready with Markdown twins & bot traffic analytics using Agent Ready by @builditwithai: https://agent-metrics.builditwithai.xyz' ) ); ?>" target="_blank" class="button" style="background:#8bd3dd;color:#001858;border:none;font-weight:600">💬 Share on X</a>
+				<a href="<?php echo esc_url( $dismiss ); ?>" style="color:#172c66;text-decoration:underline;font-size:12px;margin-left:8px">Dismiss</a>
+			</div>
+		</div>
+		<?php
 	}
 
 	public static function consent_notice() {
@@ -86,8 +124,8 @@ class AM_Admin {
 		<div class="wrap" style="background:#fef6e4;min-height:100vh;margin:0;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#172c66">
 			<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
 				<div>
-					<h1 style="margin:0;color:#001858">AI Bot Traffic Analytics</h1>
-					<p style="margin:4px 0 0;color:#172c66">Server access logs -> AI bot activity</p>
+					<h1 style="margin:0;color:#001858">Agent Ready</h1>
+					<p style="margin:4px 0 0;color:#172c66">AI Agent Readiness & Bot Traffic Analytics</p>
 				</div>
 				<form method="post">
 					<?php wp_nonce_field( 'am_admin' ); ?>
@@ -125,6 +163,18 @@ class AM_Admin {
 				}
 			} );
 			</script>
+			<div style="margin-top:28px;padding-top:14px;border-top:1px solid #f3d2c1;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:12px;color:#172c66">
+				<div>
+					<strong>Agent Ready</strong> v<?php echo esc_html( AM_VERSION ); ?> &middot; Built by <a href="https://builditwithai.xyz" target="_blank" style="color:#001858;font-weight:600;text-decoration:none">builditwithai.xyz</a>
+				</div>
+				<div style="display:flex;gap:14px;align-items:center">
+					<a href="https://github.com/surendranb/agent-metrics" target="_blank" style="color:#001858;text-decoration:none;font-weight:600">⭐ Star on GitHub</a>
+					<span>&middot;</span>
+					<a href="<?php echo esc_url( 'https://twitter.com/intent/tweet?text=' . rawurlencode( 'Making my WordPress site AI agent-ready with Markdown twins & bot traffic analytics using Agent Ready by @builditwithai: https://agent-metrics.builditwithai.xyz' ) ); ?>" target="_blank" style="color:#001858;text-decoration:none;font-weight:600">💬 Share on X</a>
+					<span>&middot;</span>
+					<a href="https://wordpress.org/support/plugin/agent-metrics/reviews/#new-post" target="_blank" style="color:#001858;text-decoration:none;font-weight:600">★ Rate 5 Stars</a>
+				</div>
+			</div>
 		</div>
 		<?php
 	}

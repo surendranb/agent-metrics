@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: AI Bot Traffic Analytics
+ * Plugin Name: Agent Ready — Markdown Twins, llms.txt, WebMCP & AI Agent Analytics
  * Plugin URI: https://builditwithai.xyz/agent-metrics
- * Description: Reads server access logs and reports AI bot traffic with an admin dashboard and an MCP server for AI agents.
+ * Description: Make your WordPress site agent-ready with markdown twins, dynamic llms.txt, and WebMCP, while tracking AI crawler traffic and bot intent from access logs.
  * Version: 0.5.0
  * Author: builditwithai.xyz
  * Author URI: https://builditwithai.xyz
@@ -73,6 +73,7 @@ add_action( 'am_telemetry_heartbeat', array( 'AM_Telemetry', 'maybe_heartbeat' )
 add_action( 'admin_menu', array( 'AM_Admin', 'menu' ) );
 add_action( 'admin_init', array( 'AM_Admin', 'handle_consent' ) );
 add_action( 'admin_notices', array( 'AM_Admin', 'consent_notice' ) );
+add_action( 'admin_notices', array( 'AM_Admin', 'advocacy_notice' ) );
 add_action( 'rest_api_init', array( 'AM_MCP_Server', 'init' ) );
 add_action( 'rest_api_init', array( 'AM_Markdown', 'rest_init' ) );
 add_action( 'init', array( 'AM_Markdown', 'init' ) );

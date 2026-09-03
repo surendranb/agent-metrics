@@ -1,6 +1,6 @@
-=== AI Bot Traffic Analytics ===
+=== Agent Ready — Markdown Twins, llms.txt, WebMCP & AI Agent Analytics ===
 Contributors: surendranb
-Tags: ai, bots, analytics, mcp, crawlers
+Tags: ai, markdown, analytics, crawlers, mcp, llmstxt, webmcp, bot-traffic, rest-api, agentic, seo, server-logs
 Requires at least: 6.0
 Tested up to: 6.8
 Stable tag: 0.5.0
@@ -8,34 +8,34 @@ Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-See which AI bots crawl your WordPress site, what they request, and why — with a built-in MCP server for AI agents.
+Make your WordPress site agent-ready with markdown twins, dynamic llms.txt, and WebMCP, while tracking AI crawler traffic and bot intent from access logs.
 
 == Description ==
 
-Agent Metrics turns your server access logs into an AI bot traffic report. It identifies bots such as GPTBot, ClaudeBot, PerplexityBot, Google-Extended, Bytespider, and 40+ others, then groups their activity by intent:
+Agent Ready makes WordPress first-class for the agentic web. It equips your site with native agent-ready infrastructure while giving you transparent intelligence into how AI crawlers and agents interact with your content.
 
-* **Training** — crawlers collecting material for model development.
-* **Search** — crawlers building indexes used to answer current questions.
-* **On-demand** — fetchers retrieving a page because a person asked an assistant for it.
+= 1. Agent Readiness =
 
-All data stays on your WordPress site. Traffic data never leaves it; optional diagnostics are covered in the Privacy section below.
+* **Markdown Twins**: Every post and page serves a clean Markdown twin at `/{slug}.md`.
+* **Content Negotiation**: Supports `Accept: text/markdown` with proper `Vary: Accept` headers.
+* **SEO Safe**: Outputs `X-Robots-Tag: noindex` and `Link: <canonical_url>; rel="canonical"` to eliminate duplicate content risks.
+* **Dynamic llms.txt**: Serves `/llms.txt`, `/.well-known/llms.txt`, and `/llms-full.txt`. Curation order is dynamically scored from real agent requests and crawler traffic, with support for manual page pins.
+* **W3C WebMCP Bridge**: Registers in-browser agent tools (`get_page_content`, `search_site`, `get_site_map`) via the WebMCP API for browser-based AI assistants.
 
-= Dashboard =
+= 2. AI Agent & Bot Analytics =
 
-* Top bots and top pages for the latest activity day.
-* Newly detected bots and newly crawled pages.
-* Intent breakdown: training vs search vs on-demand.
-* 30-day trend charts (line and stacked area).
-* Full bot table with category filters.
-* Parse status, log diagnostics, and recommended refresh frequency.
+* **Server Access Log Parsing**: Discovers and parses origin access logs with zero visitor-facing PHP overhead.
+* **42+ AI Crawlers Identified**: Accurately detects GPTBot, ClaudeBot, PerplexityBot, Google-Extended, Bytespider, CCBot, Applebot, and more.
+* **Intent Classification**: Groups activity into Training, Search, and On-demand assistant fetches.
+* **Unified Agent Activity**: Measures both background crawler hits and declared agent actions (markdown fetches, llms.txt reads, WebMCP tool executions).
+* **30-Day Trends**: Visualizes volume and intent distribution using locally vendored Chart.js.
 
-= MCP Server =
+= 3. MCP Analytics Server =
 
-The plugin exposes a protected JSON-RPC MCP endpoint so AI agents (Claude Code, OpenCode, Cursor, etc.) can query the same data shown in WordPress.
+Exposes a protected JSON-RPC endpoint (`/wp-json/agent-metrics/v1/mcp`) so AI assistants (Claude Code, Cursor, OpenCode) can query site intelligence.
 
-Available tools: `log_status`, `daily_brief`, `bot_summary`, `bot_breakdown`, `bot_trend`, `top_pages`.
-
-Available prompts: `daily-brief`, `weekly-report`, `trend-analysis`, `investigate-spike`.
+* Available tools: `log_status`, `daily_brief`, `bot_summary`, `bot_breakdown`, `bot_trend`, `top_pages`, `agent_activity_summary`.
+* Available prompts: `daily-brief`, `weekly-report`, `trend-analysis`, `investigate-spike`.
 
 = Privacy =
 
