@@ -36,9 +36,9 @@ The WordPress admin screen includes:
 
 The chart library is vendored in the plugin. The dashboard does not depend on a CDN.
 
-![Agent Metrics overview](screenshots/overview.png)
+![Agent Metrics overview](assets/screenshot-1.png)
 
-![Agent Metrics settings and MCP connection](screenshots/settings.png)
+![Agent Metrics settings and MCP connection](assets/screenshot-2.png)
 
 ## Agent-Ready Surfaces
 

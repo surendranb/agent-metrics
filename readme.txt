@@ -33,7 +33,7 @@ All data stays on your WordPress site. Traffic data never leaves it; optional di
 
 The plugin exposes a protected JSON-RPC MCP endpoint so AI agents (Claude Code, OpenCode, Cursor, etc.) can query the same data shown in WordPress.
 
-Available tools: `log_status`, `daily_brief`, `bot_summary`, `bot_breakdown`, `bot_trend`, `top_pages`.
+Available tools: `log_status`, `daily_brief`, `bot_summary`, `bot_breakdown`, `bot_trend`, `top_pages`, `agent_activity_summary`.
 
 Available prompts: `daily-brief`, `weekly-report`, `trend-analysis`, `investigate-spike`.
 
