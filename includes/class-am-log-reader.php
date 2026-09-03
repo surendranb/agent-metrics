@@ -9,6 +9,7 @@ class AM_Log_Reader {
 	public static function read( $path ) {
 		$lines = array();
 		$gz    = '.gz' === strtolower( substr( $path, -3 ) );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- System access log streaming outside WP uploads requires direct file handles.
 		$h     = $gz ? @gzopen( $path, 'rb' ) : @fopen( $path, 'r' );
 		if ( ! $h ) {
 			return $lines;
@@ -44,6 +45,7 @@ class AM_Log_Reader {
 				}
 				$buf .= $line;
 			}
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- System access log streaming outside WP uploads requires direct file handles.
 			fclose( $h );
 		}
 
@@ -61,6 +63,7 @@ class AM_Log_Reader {
 	}
 
 	public static function read_from( $path, $offset = 0 ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- System access log streaming outside WP uploads requires direct file handles.
 		$h = @fopen( $path, 'rb' );
 		if ( ! $h ) {
 			return array(
@@ -91,6 +94,7 @@ class AM_Log_Reader {
 			$count++;
 		}
 		$next = ftell( $h );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- System access log streaming outside WP uploads requires direct file handles.
 		fclose( $h );
 		return array(
 			'lines'  => $lines,

@@ -371,14 +371,14 @@ class AM_Markdown {
 	}
 
 	private static function text( $html ) {
-		$t = function_exists( 'wp_strip_all_tags' ) ? wp_strip_all_tags( self::strip_comments( (string) $html ) ) : strip_tags( self::strip_comments( (string) $html ) );
+		$t = wp_strip_all_tags( self::strip_comments( (string) $html ) );
 		$t = self::entity_decode( $t );
 		$t = preg_replace( '/\s+/', ' ', $t );
 		return trim( $t );
 	}
 
 	private static function strip_tags_keep_newlines( $html ) {
-		return function_exists( 'wp_strip_all_tags' ) ? wp_strip_all_tags( (string) $html ) : strip_tags( (string) $html );
+		return wp_strip_all_tags( (string) $html );
 	}
 
 	private static function entity_decode( $s ) {

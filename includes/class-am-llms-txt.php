@@ -91,12 +91,19 @@ class AM_Llms_Txt {
 		}
 
 		global $wpdb;
+		$table = AM_Storage::table();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name cannot be a placeholder.
 		$rows = $wpdb->get_results(
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-			'SELECT path, SUM( CASE WHEN intent = \'agent-activity\' THEN ' . self::W_AGENT . ' ELSE ' . self::W_SEARCH . ' END ) AS score
-			FROM ' . AM_Storage::table() . "
-			WHERE intent = 'agent-activity' OR intent IN ('search','on-demand')
-			GROUP BY path"
+			$wpdb->prepare(
+				"SELECT path, SUM( CASE WHEN intent = %s THEN %d ELSE %d END ) AS score
+				FROM {$table}
+				WHERE intent = %s OR intent IN ('search','on-demand')
+				GROUP BY path",
+				'agent-activity',
+				self::W_AGENT,
+				self::W_SEARCH,
+				'agent-activity'
+			)
 		);
 		$scores = array_fill( 0, count( $posts ), 0 );
 		foreach ( (array) $rows as $row ) {
