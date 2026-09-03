@@ -38,7 +38,7 @@ class AM_Reports {
 		$rollup['total_lines']              = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
 		$rollup['skipped']                  = (int) ( $status['skipped'] ?? 0 );
 		$rollup['recommended_interval_min'] = AM_Rollup::recommended_interval_minutes( $rollup );
-		$rollup['interval_min']             = (int) get_option( 'am_parse_interval_minutes', 0 );
+		$rollup['interval_min']             = (int) ( AM_Rollup::interval() / MINUTE_IN_SECONDS );
 		$rollup['next_parse']               = $rollup['generated'] + AM_Rollup::interval();
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		return $rollup;
