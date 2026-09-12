@@ -1,14 +1,14 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class AM_Reports {
+class Agent_Ready_Reports {
 
 	public static function get() {
 		global $wpdb;
-		$table  = AM_Storage::table();
+		$table  = esc_sql( AM_Storage::table() );
 		$rollup = AM_Rollup::empty();
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name cannot be a placeholder.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name cannot be a placeholder.
 		$bots = $wpdb->get_results( "SELECT bot, MAX(operator) operator, MAX(intent) category, COUNT(*) hits FROM {$table} WHERE is_bot = 1 GROUP BY bot", ARRAY_A );
 		foreach ( $bots as $row ) {
 			$rollup['bots'][ $row['bot'] ] = array(
@@ -40,7 +40,9 @@ class AM_Reports {
 		$rollup['recommended_interval_min'] = AM_Rollup::recommended_interval_minutes( $rollup );
 		$rollup['interval_min']             = (int) ( AM_Rollup::interval() / MINUTE_IN_SECONDS );
 		$rollup['next_parse']               = $rollup['generated'] + AM_Rollup::interval();
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		return $rollup;
 	}
 }
+
+class_alias( 'Agent_Ready_Reports', 'AM_Reports' );

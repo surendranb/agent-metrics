@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class AM_Log_Reader {
+class Agent_Ready_Log_Reader {
 
 	const MAX_BYTES = 2 * 1024 * 1024;
 	const MAX_LINES = 5000;
@@ -103,3 +103,5 @@ class AM_Log_Reader {
 		);
 	}
 }
+
+class_alias( 'Agent_Ready_Log_Reader', 'AM_Log_Reader' );

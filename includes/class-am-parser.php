@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class AM_Parser {
+class Agent_Ready_Parser {
 
 	public static function parse( $line ) {
 		$line = rtrim( (string) $line, "\r\n" );
@@ -47,3 +47,5 @@ class AM_Parser {
 		}
 	}
 }
+
+class_alias( 'Agent_Ready_Parser', 'AM_Parser' );

@@ -16,9 +16,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
-class AM_Llms_Txt {
+class Agent_Ready_Llms_Txt {
 
-	const OPTION   = 'am_llms_pins';
+	const OPTION   = 'agent_ready_llms_txt_pinned';
 	const LIMIT    = 100;
 	const W_AGENT  = 10;
 	const W_SEARCH = 1;
@@ -93,19 +93,11 @@ class AM_Llms_Txt {
 		}
 
 		global $wpdb;
-		$table = AM_Storage::table();
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name cannot be a placeholder.
+		$table = esc_sql( AM_Storage::table() );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$rows = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT path, SUM( CASE WHEN intent = %s THEN %d ELSE %d END ) AS score
-				FROM {$table}
-				WHERE intent = %s OR intent IN ('search','on-demand')
-				GROUP BY path",
-				'agent-activity',
-				self::W_AGENT,
-				self::W_SEARCH,
-				'agent-activity'
-			)
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name cannot be a placeholder.
+			$wpdb->prepare( "SELECT path, SUM( CASE WHEN intent = %s THEN %d ELSE %d END ) AS score FROM {$table} WHERE intent = %s OR intent IN ('search','on-demand') GROUP BY path", 'agent-activity', self::W_AGENT, self::W_SEARCH, 'agent-activity' )
 		);
 		$scores = array_fill( 0, count( $posts ), 0 );
 		foreach ( (array) $rows as $row ) {
@@ -123,8 +115,15 @@ class AM_Llms_Txt {
 			$ordered
 		);
 
-		$pins = array();
-		foreach ( (array) apply_filters( 'am_llms_pins', get_option( self::OPTION, array() ) ) as $id ) {
+		$raw_pins = get_option( self::OPTION, null );
+		if ( null === $raw_pins ) {
+			$raw_pins = get_option( 'am_llms_pins', array() );
+		}
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Backwards compatibility hook.
+		$legacy_pins   = apply_filters( 'am_llms_pins', $raw_pins );
+		$filtered_pins = apply_filters( 'agent_ready_llms_pins', $legacy_pins );
+		$pins          = array();
+		foreach ( (array) $filtered_pins as $id ) {
 			foreach ( $ordered as $i => $post ) {
 				if ( (int) $post->ID === (int) $id ) {
 					$pins[] = $post;
@@ -152,3 +151,5 @@ class AM_Llms_Txt {
 		return wp_trim_words( preg_replace( '/\s+/', ' ', $desc ), 30, '…' );
 	}
 }
+
+class_alias( 'Agent_Ready_Llms_Txt', 'AM_Llms_Txt' );

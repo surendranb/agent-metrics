@@ -1,24 +1,25 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class AM_MCP_Server {
+class Agent_Ready_MCP_Server {
 
 	const PROTOCOL = '2025-03-26';
 
 	public static function init() {
-		register_rest_route(
-			'agent-metrics/v1',
-			'/mcp',
-			array(
-				'methods'             => 'POST',
-				'callback'            => array( __CLASS__, 'handle' ),
-				'permission_callback' => array( __CLASS__, 'auth' ),
-			)
+		$route_args = array(
+			'methods'             => 'POST',
+			'callback'            => array( __CLASS__, 'handle' ),
+			'permission_callback' => array( __CLASS__, 'auth' ),
 		);
+		register_rest_route( 'agent-ready-website/v1', '/mcp', $route_args );
+		register_rest_route( 'agent-metrics/v1', '/mcp', $route_args );
 	}
 
 	public static function auth( $request ) {
-		$key = get_option( 'am_mcp_key' );
+		$key = get_option( 'agent_ready_mcp_key' );
+		if ( ! $key ) {
+			$key = get_option( 'am_mcp_key' );
+		}
 		if ( ! $key ) {
 			return false;
 		}
@@ -26,7 +27,10 @@ class AM_MCP_Server {
 		if ( $header && preg_match( '/^Bearer\s+(\S+)$/i', $header, $m ) && hash_equals( $key, $m[1] ) ) {
 			return true;
 		}
-		$header = $request->get_header( 'x-am-key' );
+		$header = $request->get_header( 'x-agent-ready-key' );
+		if ( ! $header ) {
+			$header = $request->get_header( 'x-am-key' );
+		}
 		if ( $header && hash_equals( $key, $header ) ) {
 			return true;
 		}
@@ -507,3 +511,5 @@ class AM_MCP_Server {
 				throw new Exception( 'Unknown resource: ' . esc_html( $uri ) );
 	}
 }
+
+class_alias( 'Agent_Ready_MCP_Server', 'AM_MCP_Server' );

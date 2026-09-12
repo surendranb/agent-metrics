@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class AM_Bot_Catalog {
+class Agent_Ready_Bot_Catalog {
 
 	private static $bots = array(
 		'gptbot'           => array(
@@ -272,3 +272,5 @@ class AM_Bot_Catalog {
 		return count( self::$bots );
 	}
 }
+
+class_alias( 'Agent_Ready_Bot_Catalog', 'AM_Bot_Catalog' );

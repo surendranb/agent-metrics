@@ -1,13 +1,13 @@
-# Agent Ready
+# Agent-Ready Website
 
-[![WordPress Tested](https://img.shields.io/badge/WordPress-6.0%20to%207.1-blue.svg)](https://wordpress.org/plugins/agent-metrics/)
+[![WordPress Tested](https://img.shields.io/badge/WordPress-6.0%20to%207.1-blue.svg)](https://wordpress.org/plugins/agent-ready-website/)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-green.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 [![PHP](https://img.shields.io/badge/PHP-%3E%3D%207.4-blue.svg)](https://php.net/)
 [![Showcase](https://img.shields.io/badge/Showcase-agent--ready.builditwithai.xyz-orange.svg)](https://agent-ready.builditwithai.xyz)
 
-**Make your WordPress site agent-ready with Markdown twins, dynamic llms.txt, and WebMCP, while tracking AI crawler traffic and bot intent from access logs.**
+**Make your WordPress website agent-ready with Markdown twins, dynamic llms.txt, and WebMCP, while tracking AI crawler traffic and bot intent from access logs.**
 
-Agent Ready transforms WordPress into native infrastructure for the agentic web. It arms your site with markdown twins (`/{slug}.md`), dynamic `llms.txt`, and a W3C WebMCP bridge for browser assistants, while providing granular, zero-overhead intelligence into how 42+ AI bots (GPTBot, ClaudeBot, PerplexityBot, etc.) crawl and consume your content.
+Agent-Ready Website transforms WordPress into native infrastructure for the agentic web. It arms your site with markdown twins (`/{slug}.md`), dynamic `llms.txt`, and a W3C WebMCP bridge for browser assistants, while providing granular, zero-overhead intelligence into how 42+ AI bots (GPTBot, ClaudeBot, PerplexityBot, etc.) crawl and consume your content.
 
 The plugin keeps all data local to your WordPress site. It does not send logs or content to a third-party analytics service.
 

@@ -1,10 +1,10 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class AM_Rollup {
+class Agent_Ready_Rollup {
 
-	const TRANSIENT   = 'am_rollup';
-	const GUARD       = 'am_last_parse_attempt';
+	const TRANSIENT   = 'agent_ready_rollup';
+	const GUARD       = 'agent_ready_last_parse_attempt';
 	const GUARD_TTL   = 120;
 	const WINDOW_DAYS = 30;
 
@@ -186,6 +186,7 @@ class AM_Rollup {
 
 	public static function invalidate() {
 		delete_transient( self::TRANSIENT );
+		delete_transient( 'am_rollup' );
 		$status              = get_option( 'am_parse_status', array() );
 		$status['generated'] = 0;
 		update_option( 'am_parse_status', $status, false );
@@ -245,3 +246,5 @@ class AM_Rollup {
 		return false;
 	}
 }
+
+class_alias( 'Agent_Ready_Rollup', 'AM_Rollup' );

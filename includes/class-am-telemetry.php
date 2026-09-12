@@ -1,11 +1,11 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class AM_Telemetry {
+class Agent_Ready_Telemetry {
 
-	const ENABLED   = 'am_telemetry_enabled';
-	const INSTALL   = 'am_telemetry_install_id';
-	const HEARTBEAT = 'am_telemetry_last_heartbeat';
+	const ENABLED   = 'agent_ready_telemetry_enabled';
+	const INSTALL   = 'agent_ready_telemetry_install_id';
+	const HEARTBEAT = 'agent_ready_telemetry_last_heartbeat';
 	const URL       = 'https://agent-metrics.builditwithai.xyz/v1/events';
 
 	private static $properties = array(
@@ -22,16 +22,24 @@ class AM_Telemetry {
 	);
 
 	public static function enabled() {
+		if ( defined( 'AGENT_READY_TELEMETRY_ENABLED' ) ) {
+			return (bool) AGENT_READY_TELEMETRY_ENABLED;
+		}
 		if ( defined( 'AM_TELEMETRY_ENABLED' ) ) {
 			return (bool) AM_TELEMETRY_ENABLED;
 		}
-		return (bool) apply_filters( 'am_telemetry_enabled', (bool) get_option( self::ENABLED, false ) );
+		$opt = get_option( self::ENABLED, null );
+		if ( null === $opt ) {
+			$opt = get_option( 'am_telemetry_enabled', false );
+		}
+		return (bool) apply_filters( 'agent_ready_telemetry_enabled', (bool) $opt );
 	}
 
 	public static function set_enabled( $enabled ) {
 		$enabled     = (bool) $enabled;
 		$was_enabled = self::enabled();
 		update_option( self::ENABLED, $enabled, false );
+		update_option( 'am_telemetry_enabled', $enabled, false );
 		if ( $enabled && ! $was_enabled ) {
 			self::install_id();
 			self::send( 'telemetry_enabled' );
@@ -102,3 +110,5 @@ class AM_Telemetry {
 		return $id;
 	}
 }
+
+class_alias( 'Agent_Ready_Telemetry', 'AM_Telemetry' );

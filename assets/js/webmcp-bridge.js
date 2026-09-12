@@ -3,11 +3,13 @@
 	if ( ! ( 'modelContext' in document ) ) {
 		return;
 	}
-	var slug = ( window.amAgentActivity && window.amAgentActivity.slug ) || '';
+	var slug  = ( window.amAgentActivity && window.amAgentActivity.slug ) || '';
+	var nonce = ( window.amAgentActivity && window.amAgentActivity.nonce ) || '';
 
 	function beacon( tool ) {
 		try {
-			navigator.sendBeacon( '/wp-json/agent-metrics/v1/agent-activity', JSON.stringify( { kind: 'declared', tool: tool, slug: slug } ) );
+			var url = '/wp-json/agent-metrics/v1/agent-activity' + ( nonce ? '?_wpnonce=' + encodeURIComponent( nonce ) : '' );
+			navigator.sendBeacon( url, JSON.stringify( { kind: 'declared', tool: tool, slug: slug } ) );
 		} catch ( e ) {}
 	}
 

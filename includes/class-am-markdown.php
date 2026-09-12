@@ -1,13 +1,17 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class AM_Markdown {
+class Agent_Ready_Markdown {
 
-	const OPTION    = 'am_agent_activity';
-	const QUERY_VAR = 'am_markdown';
+	const OPTION    = 'agent_ready_activity_enabled';
+	const QUERY_VAR = 'agent_ready_markdown';
 
 	public static function enabled() {
-		return '1' === (string) get_option( self::OPTION, '1' );
+		$val = get_option( self::OPTION, null );
+		if ( null === $val ) {
+			$val = get_option( 'am_agent_activity', '1' );
+		}
+		return '1' === (string) $val;
 	}
 
 	public static function init() {
@@ -16,6 +20,7 @@ class AM_Markdown {
 
 	public static function query_vars( $vars ) {
 		$vars[] = self::QUERY_VAR;
+		$vars[] = 'am_markdown';
 		return $vars;
 	}
 
@@ -32,21 +37,19 @@ class AM_Markdown {
 		if ( ! self::enabled() ) {
 			return;
 		}
-		register_rest_route(
-			'agent-metrics/v1',
-			'/page-markdown',
-			array(
-				'methods'             => 'GET',
-				'permission_callback' => '__return_true',
-				'args'                => array(
-					'slug' => array(
-						'required'          => true,
-						'sanitize_callback' => 'sanitize_text_field',
-					),
+		$route_args = array(
+			'methods'             => 'GET',
+			'permission_callback' => '__return_true',
+			'args'                => array(
+				'slug' => array(
+					'required'          => true,
+					'sanitize_callback' => 'sanitize_text_field',
 				),
-				'callback'            => array( __CLASS__, 'rest_get' ),
-			)
+			),
+			'callback'            => array( __CLASS__, 'rest_get' ),
 		);
+		register_rest_route( 'agent-ready-website/v1', '/page-markdown', $route_args );
+		register_rest_route( 'agent-metrics/v1', '/page-markdown', $route_args );
 	}
 
 	public static function rest_get( $request ) {
@@ -147,28 +150,18 @@ class AM_Markdown {
 		}
 		$date = gmdate( 'Y-m-d', strtotime( $post->post_date_gmt ? $post->post_date_gmt : $post->post_date ) );
 		$body = self::blocks_to_markdown( parse_blocks( $post->post_content ) );
-		$ld   = array(
-			'@context'     => 'https://schema.org',
-			'@type'        => 'Article',
-			'headline'     => $title,
-			'description'  => $desc,
-			'url'          => $canonical,
-			'datePublished' => gmdate( 'c', strtotime( $post->post_date_gmt ? $post->post_date_gmt : $post->post_date ) ),
-		);
 		return '---' . "\n"
 			. 'title: ' . self::yaml( $title ) . "\n"
 			. 'description: ' . self::yaml( $desc ) . "\n"
 			. 'canonical: ' . self::yaml( $canonical ) . "\n"
 			. 'date: ' . $date . "\n"
 			. '---' . "\n\n"
-			. $body . "\n\n"
-			. '<script type="application/ld+json">' . "\n"
-			. wp_json_encode( $ld, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) . "\n"
-			. '</script>' . "\n";
+			. $body . "\n";
 	}
 
 	private static function yaml( $value ) {
-		return '"' . str_replace( array( '\\', '"' ), array( '\\\\', '\\"' ), (string) $value ) . '"';
+		$clean = preg_replace( '/[\r\n\t]+/', ' ', (string) $value );
+		return '"' . str_replace( array( '\\', '"' ), array( '\\\\', '\\"' ), trim( (string) $clean ) ) . '"';
 	}
 
 	public static function blocks_to_markdown( $blocks ) {
@@ -342,6 +335,7 @@ class AM_Markdown {
 				$src = $s[1];
 			}
 		}
+		$src = esc_url( $src );
 		if ( ! $src ) {
 			return '';
 		}
@@ -353,7 +347,8 @@ class AM_Markdown {
 		$html = preg_replace_callback(
 			'~<a[^>]*href=["\']([^"\']*)["\'][^>]*>(.*?)</a>~is',
 			function ( $m ) {
-				return '[' . self::text( $m[2] ) . '](' . $m[1] . ')';
+				$url = esc_url( $m[1] );
+				return $url ? '[' . self::text( $m[2] ) . '](' . $url . ')' : self::text( $m[2] );
 			},
 			$html
 		);
@@ -361,7 +356,7 @@ class AM_Markdown {
 			'~<img[^>]*~is',
 			function ( $m ) {
 				$alt = preg_match( '~\salt=["\']([^"\']*)["\']~i', $m[0], $a ) ? $a[1] : '';
-				$src = preg_match( '~\ssrc=["\']([^"\']*)["\']~i', $m[0], $s ) ? $s[1] : '';
+				$src = preg_match( '~\ssrc=["\']([^"\']*)["\']~i', $m[0], $s ) ? esc_url( $s[1] ) : '';
 				return $src ? '[' . self::text( $alt ) . '](' . $src . ')' : '';
 			},
 			$html
@@ -393,3 +388,5 @@ class AM_Markdown {
 		);
 	}
 }
+
+class_alias( 'Agent_Ready_Markdown', 'AM_Markdown' );

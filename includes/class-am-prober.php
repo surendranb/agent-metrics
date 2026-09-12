@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class AM_Prober {
+class Agent_Ready_Prober {
 
 	public static function probe() {
 		$diag       = array();
@@ -63,10 +63,14 @@ class AM_Prober {
 
 	private static function candidates() {
 		$paths = array();
-		if ( defined( 'AM_LOG_PATH' ) && AM_LOG_PATH ) {
+		if ( defined( 'AGENT_READY_LOG_PATH' ) && AGENT_READY_LOG_PATH ) {
+			$paths['dev (AGENT_READY_LOG_PATH)'] = AGENT_READY_LOG_PATH;
+		} elseif ( defined( 'AM_LOG_PATH' ) && AM_LOG_PATH ) {
 			$paths['dev (AM_LOG_PATH)'] = AM_LOG_PATH;
 		}
-		if ( defined( 'AM_LOG_DIR' ) && AM_LOG_DIR ) {
+		if ( defined( 'AGENT_READY_LOG_DIR' ) && AGENT_READY_LOG_DIR ) {
+			$paths['dev (AGENT_READY_LOG_DIR)'] = AGENT_READY_LOG_DIR;
+		} elseif ( defined( 'AM_LOG_DIR' ) && AM_LOG_DIR ) {
 			$paths['dev (AM_LOG_DIR)'] = AM_LOG_DIR;
 		}
 		$user = function_exists( 'get_current_user' ) ? get_current_user() : '';
@@ -79,3 +83,5 @@ class AM_Prober {
 		return $paths;
 	}
 }
+
+class_alias( 'Agent_Ready_Prober', 'AM_Prober' );

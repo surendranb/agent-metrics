@@ -1,5 +1,5 @@
-=== Agent Ready — Markdown Twins, llms.txt, WebMCP & AI Agent Analytics ===
-Contributors: surendranb
+=== Agent-Ready Website — Markdown Twins & AI Agent Analytics ===
+Contributors: surendran
 Tags: ai, markdown, analytics, crawlers, mcp
 Requires at least: 6.0
 Tested up to: 7.1
@@ -8,11 +8,11 @@ Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Make WordPress agent-ready with Markdown twins, llms.txt, and WebMCP, while tracking AI crawler traffic and bot intent from server logs.
+Make your WordPress website agent-ready with Markdown twins, llms.txt, WebMCP in-browser tools, and local AI crawler analytics.
 
 == Description ==
 
-Agent Ready makes WordPress first-class for the agentic web. It equips your site with native agent-ready infrastructure while giving you transparent intelligence into how AI crawlers and agents interact with your content.
+Agent-Ready Website makes WordPress first-class for the agentic web. It equips your site with native agent-ready infrastructure while giving you transparent intelligence into how AI crawlers and agents interact with your content.
 
 = 1. Agent Readiness =
 
@@ -135,3 +135,17 @@ Adds a one-time consent notice for optional diagnostics and includes error messa
 
 = 0.4.0 =
 Security hardening release. Fixes static asset tracking, removes PII from telemetry, adds MCP rate limiting. Recommended for all users.
+
+== External Services ==
+
+This plugin can optionally connect to an external diagnostics service to report health and error telemetry.
+
+* **Service**: Agent Ready Cloud Diagnostics, operated by Build It With AI (routed via Cloudflare Workers to PostHog).
+* **Endpoint**: `https://agent-metrics.builditwithai.xyz/v1/events`
+* **Purpose**: Collects anonymous operational health events (plugin version, PHP version, parse latency, and sanitized error messages) to help diagnose bugs.
+* **When**: Sent only when the administrator explicitly opts in via Settings -> "Share anonymous diagnostics". Disabled by default.
+* **Data Privacy**: Never transmits visitor IP addresses, site content, URLs, traffic data, or log contents.
+* **Terms of Service**: https://builditwithai.xyz/terms
+* **Privacy Policy**: https://builditwithai.xyz/privacy
+* **Cloudflare Privacy Policy**: https://www.cloudflare.com/privacypolicy/
+* **PostHog Privacy Policy**: https://posthog.com/privacy
