@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class Agent_Ready_Reports {
+class AgentLens_Reports {
 
 	public static function get() {
 		global $wpdb;
@@ -45,4 +45,5 @@ class Agent_Ready_Reports {
 	}
 }
 
-class_alias( 'Agent_Ready_Reports', 'AM_Reports' );
+class_alias( 'AgentLens_Reports', 'Agent_Ready_Reports' );
+class_alias( 'AgentLens_Reports', 'AM_Reports' );

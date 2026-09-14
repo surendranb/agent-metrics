@@ -16,7 +16,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-class Agent_Ready_Llms_Txt {
+class AgentLens_Llms_Txt {
 
 	const OPTION   = 'agent_ready_llms_txt_pinned';
 	const LIMIT    = 100;
@@ -152,4 +152,5 @@ class Agent_Ready_Llms_Txt {
 	}
 }
 
-class_alias( 'Agent_Ready_Llms_Txt', 'AM_Llms_Txt' );
+class_alias( 'AgentLens_Llms_Txt', 'Agent_Ready_Llms_Txt' );
+class_alias( 'AgentLens_Llms_Txt', 'AM_Llms_Txt' );

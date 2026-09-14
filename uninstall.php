@@ -7,6 +7,7 @@ global $wpdb;
 
 // Remove all plugin options.
 $agent_ready_options = array(
+	'agentlens_mcp_key',
 	'agent_ready_mcp_key',
 	'agent_ready_storage_version',
 	'agent_ready_log_cursor',
@@ -43,13 +44,14 @@ $agent_ready_options = array(
 foreach ( $agent_ready_options as $agent_ready_opt ) {
 	delete_option( $agent_ready_opt );
 }
+delete_transient( 'agentlens_rollup' );
 delete_transient( 'agent_ready_rollup' );
 delete_transient( 'am_rollup' );
 
 // Remove MCP rate-limit transients.
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 $wpdb->query(
-	"DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_agent_ready_%' OR option_name LIKE '_transient_timeout_agent_ready_%' OR option_name LIKE '_transient_am_mcp_rate_%' OR option_name LIKE '_transient_timeout_am_mcp_rate_%' OR option_name LIKE '_transient_am_beacon_rate_%' OR option_name LIKE '_transient_timeout_am_beacon_rate_%'"
+	"DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_agentlens_%' OR option_name LIKE '_transient_timeout_agentlens_%' OR option_name LIKE '_transient_agent_ready_%' OR option_name LIKE '_transient_timeout_agent_ready_%' OR option_name LIKE '_transient_am_mcp_rate_%' OR option_name LIKE '_transient_timeout_am_mcp_rate_%' OR option_name LIKE '_transient_am_beacon_rate_%' OR option_name LIKE '_transient_timeout_am_beacon_rate_%'"
 );
 
 // Drop the hits table.
@@ -58,6 +60,8 @@ $agent_ready_table = esc_sql( $wpdb->prefix . 'agent_metrics_hits' );
 $wpdb->query( "DROP TABLE IF EXISTS `{$agent_ready_table}`" );
 
 // Clean up any leftover cron hooks.
+wp_clear_scheduled_hook( 'agentlens_parse' );
+wp_clear_scheduled_hook( 'agentlens_telemetry_heartbeat' );
 wp_clear_scheduled_hook( 'agent_ready_parse' );
 wp_clear_scheduled_hook( 'agent_ready_telemetry_heartbeat' );
 wp_clear_scheduled_hook( 'am_parse' );

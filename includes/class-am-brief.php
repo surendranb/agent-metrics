@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class Agent_Ready_Brief {
+class AgentLens_Brief {
 
 	public static function get( $rollup = null ) {
 		if ( null === $rollup ) {
@@ -136,4 +136,5 @@ class Agent_Ready_Brief {
 	}
 }
 
-class_alias( 'Agent_Ready_Brief', 'AM_Brief' );
+class_alias( 'AgentLens_Brief', 'Agent_Ready_Brief' );
+class_alias( 'AgentLens_Brief', 'AM_Brief' );

@@ -1,4 +1,4 @@
-=== Agent-Ready Website — Markdown Twins & AI Agent Analytics ===
+=== AgentLens — Content & Traffic Analytics ===
 Contributors: surendran
 Tags: ai, markdown, analytics, crawlers, mcp
 Requires at least: 6.0
@@ -12,7 +12,7 @@ Make your WordPress website agent-ready with Markdown twins, llms.txt, WebMCP in
 
 == Description ==
 
-Agent-Ready Website makes WordPress first-class for the agentic web. It equips your site with native agent-ready infrastructure while giving you transparent intelligence into how AI crawlers and agents interact with your content.
+AgentLens makes WordPress first-class for the agentic web. It equips your site with native agent-ready infrastructure while giving you transparent intelligence into how AI crawlers and agents interact with your content.
 
 = 1. Agent Readiness =
 
@@ -51,9 +51,9 @@ Exposes a protected JSON-RPC endpoint (`/wp-json/agent-metrics/v1/mcp`) so AI as
 
 == Installation ==
 
-1. Upload the `agent-metrics` folder to `/wp-content/plugins/`.
+1. Upload the `agentlens` folder to `/wp-content/plugins/`.
 2. Activate the plugin through the **Plugins** menu.
-3. Open **AI Bot Traffic** in the admin menu.
+3. Open **AgentLens** in the admin menu.
 
 The plugin auto-discovers access logs in common locations (Nginx, Apache, cPanel). If your logs are in a custom path, add this to `wp-config.php`:
 
@@ -140,7 +140,7 @@ Security hardening release. Fixes static asset tracking, removes PII from teleme
 
 This plugin can optionally connect to an external diagnostics service to report health and error telemetry.
 
-* **Service**: Agent Ready Cloud Diagnostics, operated by Build It With AI (routed via Cloudflare Workers to PostHog).
+* **Service**: AgentLens Cloud Diagnostics, operated by Build It With AI (routed via Cloudflare Workers to PostHog).
 * **Endpoint**: `https://agent-metrics.builditwithai.xyz/v1/events`
 * **Purpose**: Collects anonymous operational health events (plugin version, PHP version, parse latency, and sanitized error messages) to help diagnose bugs.
 * **When**: Sent only when the administrator explicitly opts in via Settings -> "Share anonymous diagnostics". Disabled by default.

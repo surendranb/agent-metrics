@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class Agent_Ready_MCP_Server {
+class AgentLens_MCP_Server {
 
 	const PROTOCOL = '2025-03-26';
 
@@ -11,12 +11,16 @@ class Agent_Ready_MCP_Server {
 			'callback'            => array( __CLASS__, 'handle' ),
 			'permission_callback' => array( __CLASS__, 'auth' ),
 		);
+		register_rest_route( 'agentlens/v1', '/mcp', $route_args );
 		register_rest_route( 'agent-ready-website/v1', '/mcp', $route_args );
 		register_rest_route( 'agent-metrics/v1', '/mcp', $route_args );
 	}
 
 	public static function auth( $request ) {
-		$key = get_option( 'agent_ready_mcp_key' );
+		$key = get_option( 'agentlens_mcp_key' );
+		if ( ! $key ) {
+			$key = get_option( 'agent_ready_mcp_key' );
+		}
 		if ( ! $key ) {
 			$key = get_option( 'am_mcp_key' );
 		}
@@ -27,7 +31,10 @@ class Agent_Ready_MCP_Server {
 		if ( $header && preg_match( '/^Bearer\s+(\S+)$/i', $header, $m ) && hash_equals( $key, $m[1] ) ) {
 			return true;
 		}
-		$header = $request->get_header( 'x-agent-ready-key' );
+		$header = $request->get_header( 'x-agentlens-key' );
+		if ( ! $header ) {
+			$header = $request->get_header( 'x-agent-ready-key' );
+		}
 		if ( ! $header ) {
 			$header = $request->get_header( 'x-am-key' );
 		}
@@ -512,4 +519,5 @@ class Agent_Ready_MCP_Server {
 	}
 }
 
-class_alias( 'Agent_Ready_MCP_Server', 'AM_MCP_Server' );
+class_alias( 'AgentLens_MCP_Server', 'Agent_Ready_MCP_Server' );
+class_alias( 'AgentLens_MCP_Server', 'AM_MCP_Server' );

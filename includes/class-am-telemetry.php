@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class Agent_Ready_Telemetry {
+class AgentLens_Telemetry {
 
 	const ENABLED   = 'agent_ready_telemetry_enabled';
 	const INSTALL   = 'agent_ready_telemetry_install_id';
@@ -111,4 +111,5 @@ class Agent_Ready_Telemetry {
 	}
 }
 
-class_alias( 'Agent_Ready_Telemetry', 'AM_Telemetry' );
+class_alias( 'AgentLens_Telemetry', 'Agent_Ready_Telemetry' );
+class_alias( 'AgentLens_Telemetry', 'AM_Telemetry' );

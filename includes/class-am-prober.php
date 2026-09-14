@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class Agent_Ready_Prober {
+class AgentLens_Prober {
 
 	public static function probe() {
 		$diag       = array();
@@ -84,4 +84,5 @@ class Agent_Ready_Prober {
 	}
 }
 
-class_alias( 'Agent_Ready_Prober', 'AM_Prober' );
+class_alias( 'AgentLens_Prober', 'Agent_Ready_Prober' );
+class_alias( 'AgentLens_Prober', 'AM_Prober' );

@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class Agent_Ready_Rollup {
+class AgentLens_Rollup {
 
 	const TRANSIENT   = 'agent_ready_rollup';
 	const GUARD       = 'agent_ready_last_parse_attempt';
@@ -247,4 +247,5 @@ class Agent_Ready_Rollup {
 	}
 }
 
-class_alias( 'Agent_Ready_Rollup', 'AM_Rollup' );
+class_alias( 'AgentLens_Rollup', 'Agent_Ready_Rollup' );
+class_alias( 'AgentLens_Rollup', 'AM_Rollup' );

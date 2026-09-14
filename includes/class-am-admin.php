@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class Agent_Ready_Admin {
+class AgentLens_Admin {
 
 	private static $charts = array();
 
@@ -9,7 +9,7 @@ class Agent_Ready_Admin {
 	const CONSENT_RMD  = 'agent_ready_telemetry_consent_remind';
 
 	public static function menu() {
-		add_menu_page( 'Agent-Ready Website: AI Readiness & Bot Analytics', 'Agent Ready', 'manage_options', 'agent-ready-website', array( __CLASS__, 'render' ), 'dashicons-chart-area', 26 );
+		add_menu_page( 'AgentLens: Content & Traffic Analytics', 'AgentLens', 'manage_options', 'agentlens', array( __CLASS__, 'render' ), 'dashicons-chart-area', 26 );
 	}
 
 	public static function handle_consent() {
@@ -47,7 +47,7 @@ class Agent_Ready_Admin {
 			return;
 		}
 		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( ! $screen || ! in_array( $screen->id, array( 'toplevel_page_agent-ready-website', 'toplevel_page_agent-metrics' ), true ) ) {
+		if ( ! $screen || ! in_array( $screen->id, array( 'toplevel_page_agentlens', 'toplevel_page_agent-ready-website', 'toplevel_page_agent-metrics' ), true ) ) {
 			return;
 		}
 		$rollup         = AM_Rollup::get();
@@ -62,10 +62,10 @@ class Agent_Ready_Admin {
 		?>
 		<div class="notice notice-info is-dismissible" style="background:#fef6e4;border-left-color:#f582ae;padding:12px 16px;margin:16px 0">
 			<p style="margin:0 0 8px;font-size:13px;color:#001858">
-				<strong>Agent-Ready Website has recorded <?php echo esc_html( number_format( $total_events ) ); ?> AI crawler and agent requests!</strong>
+				<strong>AgentLens has recorded <?php echo esc_html( number_format( $total_events ) ); ?> AI crawler and agent requests!</strong>
 			</p>
 			<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-				<a href="<?php echo esc_url( 'https://twitter.com/intent/tweet?text=' . rawurlencode( 'Making my WordPress site AI agent-ready with Markdown twins & bot traffic analytics: https://builditwithai.xyz/agent-ready-website' ) ); ?>" target="_blank" class="button" style="background:#8bd3dd;color:#001858;border:none;font-weight:600">💬 Share on X</a>
+				<a href="<?php echo esc_url( 'https://twitter.com/intent/tweet?text=' . rawurlencode( 'Making my WordPress site AI agent-ready with Markdown twins & bot traffic analytics: https://builditwithai.xyz/agentlens' ) ); ?>" target="_blank" class="button" style="background:#8bd3dd;color:#001858;border:none;font-weight:600">💬 Share on X</a>
 				<a href="<?php echo esc_url( $dismiss ); ?>" style="color:#172c66;text-decoration:underline;font-size:12px;margin-left:8px">Dismiss</a>
 			</div>
 		</div>
@@ -77,7 +77,7 @@ class Agent_Ready_Admin {
 			return;
 		}
 		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( ! $screen || ! in_array( $screen->id, array( 'toplevel_page_agent-ready-website', 'toplevel_page_agent-metrics' ), true ) ) {
+		if ( ! $screen || ! in_array( $screen->id, array( 'toplevel_page_agentlens', 'toplevel_page_agent-ready-website', 'toplevel_page_agent-metrics' ), true ) ) {
 			return;
 		}
 		$consent = get_option( self::CONSENT, get_option( 'am_telemetry_consent', '' ) );
@@ -108,9 +108,9 @@ class Agent_Ready_Admin {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-		$plugin_file = defined( 'AGENT_READY_FILE' ) ? AGENT_READY_FILE : AM_PLUGIN_DIR . 'agent-ready-website.php';
-		wp_enqueue_script( 'agent-ready-chart', plugins_url( 'assets/vendor/chart.umd.min.js', $plugin_file ), array(), '4.5.1', true );
-		wp_enqueue_script( 'agent-ready-admin', plugins_url( 'assets/js/admin.js', $plugin_file ), array(), AGENT_READY_VERSION, true );
+		$plugin_file = defined( 'AGENTLENS_FILE' ) ? AGENTLENS_FILE : ( defined( 'AGENT_READY_FILE' ) ? AGENT_READY_FILE : AM_PLUGIN_DIR . 'agentlens.php' );
+		wp_enqueue_script( 'agentlens-chart', plugins_url( 'assets/vendor/chart.umd.min.js', $plugin_file ), array(), '4.5.1', true );
+		wp_enqueue_script( 'agentlens-admin', plugins_url( 'assets/js/admin.js', $plugin_file ), array(), defined( 'AGENTLENS_VERSION' ) ? AGENTLENS_VERSION : AM_VERSION, true );
 		if ( isset( $_POST['am_action'] ) && check_admin_referer( 'am_admin' ) ) {
 			if ( 'refresh' === $_POST['am_action'] ) {
 				AM_Rollup::invalidate();
@@ -165,14 +165,14 @@ class Agent_Ready_Admin {
 			<?php self::emit_chart_js(); ?>
 			<div style="margin-top:28px;padding-top:14px;border-top:1px solid #f3d2c1;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:12px;color:#172c66">
 				<div>
-					<strong>Agent Ready</strong> v<?php echo esc_html( AM_VERSION ); ?> &middot; Built by <a href="https://builditwithai.xyz" target="_blank" style="color:#001858;font-weight:600;text-decoration:none">builditwithai.xyz</a>
+					<strong>AgentLens</strong> v<?php echo esc_html( AM_VERSION ); ?> &middot; Built by <a href="https://builditwithai.xyz" target="_blank" style="color:#001858;font-weight:600;text-decoration:none">builditwithai.xyz</a>
 				</div>
 				<div style="display:flex;gap:14px;align-items:center">
 					<a href="https://github.com/surendranb/agent-metrics" target="_blank" style="color:#001858;text-decoration:none;font-weight:600">⭐ Star on GitHub</a>
 					<span>&middot;</span>
-					<a href="<?php echo esc_url( 'https://twitter.com/intent/tweet?text=' . rawurlencode( 'Making my WordPress site AI agent-ready with Markdown twins & bot traffic analytics using Agent Ready by @builditwithai: https://agent-metrics.builditwithai.xyz' ) ); ?>" target="_blank" style="color:#001858;text-decoration:none;font-weight:600">💬 Share on X</a>
+					<a href="<?php echo esc_url( 'https://twitter.com/intent/tweet?text=' . rawurlencode( 'Making my WordPress site AI agent-ready with Markdown twins & bot traffic analytics using AgentLens by @builditwithai: https://agent-metrics.builditwithai.xyz' ) ); ?>" target="_blank" style="color:#001858;text-decoration:none;font-weight:600">💬 Share on X</a>
 					<span>&middot;</span>
-					<a href="https://wordpress.org/support/plugin/agent-metrics/reviews/#new-post" target="_blank" style="color:#001858;text-decoration:none;font-weight:600">★ Rate 5 Stars</a>
+					<a href="https://wordpress.org/support/plugin/agentlens/reviews/#new-post" target="_blank" style="color:#001858;text-decoration:none;font-weight:600">★ Rate 5 Stars</a>
 				</div>
 			</div>
 		</div>
@@ -180,7 +180,7 @@ class Agent_Ready_Admin {
 	}
 
 	public static function tab_url( $tab ) {
-		return add_query_arg( 'am_tab', $tab, admin_url( 'admin.php?page=agent-metrics' ) );
+		return add_query_arg( 'am_tab', $tab, admin_url( 'admin.php?page=agentlens' ) );
 	}
 
 	private static function render_tab( $tab, $rollup ) {
@@ -847,8 +847,9 @@ class Agent_Ready_Admin {
 		}
 		$js = 'document.addEventListener("DOMContentLoaded",function(){window.AM_CHARTS=' . wp_json_encode( self::$charts )
 			. ';AM_CHARTS.forEach(function(c){var el=document.getElementById(c.id);if(el&&window.Chart){new Chart(el,c.config);}});});';
-		wp_add_inline_script( 'agent-ready-chart', $js, 'after' );
+		wp_add_inline_script( 'agentlens-chart', $js, 'after' );
 	}
 }
 
-class_alias( 'Agent_Ready_Admin', 'AM_Admin' );
+class_alias( 'AgentLens_Admin', 'Agent_Ready_Admin' );
+class_alias( 'AgentLens_Admin', 'AM_Admin' );

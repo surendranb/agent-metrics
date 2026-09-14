@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-class Agent_Ready_Agent_Activity {
+class AgentLens_Agent_Activity {
 
 	const INTENT = 'agent-activity';
 	const TOOLS  = array( 'get_page_content', 'search_site', 'get_site_map' );
@@ -18,6 +18,7 @@ class Agent_Ready_Agent_Activity {
 			'callback'            => array( __CLASS__, 'record' ),
 			'permission_callback' => array( __CLASS__, 'check_permission' ),
 		);
+		register_rest_route( 'agentlens/v1', '/agent-activity', $args );
 		register_rest_route( 'agent-ready-website/v1', '/agent-activity', $args );
 		register_rest_route( 'agent-metrics/v1', '/agent-activity', $args );
 	}
@@ -134,16 +135,16 @@ class Agent_Ready_Agent_Activity {
 		if ( ! AM_Markdown::enabled() ) {
 			return;
 		}
-		$plugin_file = defined( 'AGENT_READY_FILE' ) ? AGENT_READY_FILE : AM_PLUGIN_DIR . 'agent-ready-website.php';
+		$plugin_file = defined( 'AGENTLENS_FILE' ) ? AGENTLENS_FILE : ( defined( 'AGENT_READY_FILE' ) ? AGENT_READY_FILE : AM_PLUGIN_DIR . 'agentlens.php' );
 		wp_enqueue_script(
-			'agent-ready-webmcp-bridge',
+			'agentlens-webmcp-bridge',
 			plugins_url( 'assets/js/webmcp-bridge.js', $plugin_file ),
 			array(),
-			AGENT_READY_VERSION,
+			defined( 'AGENTLENS_VERSION' ) ? AGENTLENS_VERSION : AM_VERSION,
 			array( 'strategy' => 'defer' )
 		);
 		wp_localize_script(
-			'agent-ready-webmcp-bridge',
+			'agentlens-webmcp-bridge',
 			'amAgentActivity',
 			array(
 				'slug'  => is_singular() ? (string) get_post_field( 'post_name' ) : '',
@@ -177,4 +178,5 @@ class Agent_Ready_Agent_Activity {
 	}
 }
 
-class_alias( 'Agent_Ready_Agent_Activity', 'AM_Agent_Activity' );
+class_alias( 'AgentLens_Agent_Activity', 'Agent_Ready_Agent_Activity' );
+class_alias( 'AgentLens_Agent_Activity', 'AM_Agent_Activity' );
