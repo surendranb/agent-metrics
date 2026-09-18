@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class AgentLens_Bot_Catalog {
+class InPlainSite_Bot_Catalog {
 
 	private static $bots = array(
 		'gptbot'           => array(
@@ -273,5 +273,6 @@ class AgentLens_Bot_Catalog {
 	}
 }
 
-class_alias( 'AgentLens_Bot_Catalog', 'Agent_Ready_Bot_Catalog' );
-class_alias( 'AgentLens_Bot_Catalog', 'AM_Bot_Catalog' );
+class_alias( 'InPlainSite_Bot_Catalog', 'AgentLens_Bot_Catalog' );
+class_alias( 'InPlainSite_Bot_Catalog', 'Agent_Ready_Bot_Catalog' );
+class_alias( 'InPlainSite_Bot_Catalog', 'AM_Bot_Catalog' );

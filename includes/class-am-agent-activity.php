@@ -7,7 +7,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-class AgentLens_Agent_Activity {
+class InPlainSite_Agent_Activity {
 
 	const INTENT = 'agent-activity';
 	const TOOLS  = array( 'get_page_content', 'search_site', 'get_site_map' );
@@ -18,6 +18,7 @@ class AgentLens_Agent_Activity {
 			'callback'            => array( __CLASS__, 'record' ),
 			'permission_callback' => array( __CLASS__, 'check_permission' ),
 		);
+		register_rest_route( 'inplainsite/v1', '/agent-activity', $args );
 		register_rest_route( 'agentlens/v1', '/agent-activity', $args );
 		register_rest_route( 'agent-ready-website/v1', '/agent-activity', $args );
 		register_rest_route( 'agent-metrics/v1', '/agent-activity', $args );
@@ -135,16 +136,16 @@ class AgentLens_Agent_Activity {
 		if ( ! AM_Markdown::enabled() ) {
 			return;
 		}
-		$plugin_file = defined( 'AGENTLENS_FILE' ) ? AGENTLENS_FILE : ( defined( 'AGENT_READY_FILE' ) ? AGENT_READY_FILE : AM_PLUGIN_DIR . 'agentlens.php' );
+		$plugin_file = defined( 'INPLAINSITE_FILE' ) ? INPLAINSITE_FILE : ( defined( 'AGENTLENS_FILE' ) ? AGENTLENS_FILE : ( defined( 'AGENT_READY_FILE' ) ? AGENT_READY_FILE : AM_PLUGIN_DIR . 'inplainsite.php' ) );
 		wp_enqueue_script(
-			'agentlens-webmcp-bridge',
+			'inplainsite-webmcp-bridge',
 			plugins_url( 'assets/js/webmcp-bridge.js', $plugin_file ),
 			array(),
-			defined( 'AGENTLENS_VERSION' ) ? AGENTLENS_VERSION : AM_VERSION,
+			defined( 'INPLAINSITE_VERSION' ) ? INPLAINSITE_VERSION : AM_VERSION,
 			array( 'strategy' => 'defer' )
 		);
 		wp_localize_script(
-			'agentlens-webmcp-bridge',
+			'inplainsite-webmcp-bridge',
 			'amAgentActivity',
 			array(
 				'slug'  => is_singular() ? (string) get_post_field( 'post_name' ) : '',
@@ -178,5 +179,6 @@ class AgentLens_Agent_Activity {
 	}
 }
 
-class_alias( 'AgentLens_Agent_Activity', 'Agent_Ready_Agent_Activity' );
-class_alias( 'AgentLens_Agent_Activity', 'AM_Agent_Activity' );
+class_alias( 'InPlainSite_Agent_Activity', 'AgentLens_Agent_Activity' );
+class_alias( 'InPlainSite_Agent_Activity', 'Agent_Ready_Agent_Activity' );
+class_alias( 'InPlainSite_Agent_Activity', 'AM_Agent_Activity' );

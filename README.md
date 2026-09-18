@@ -1,13 +1,13 @@
-# AgentLens — Content & Traffic Analytics
+# InPlainSite – Clean Markdown & Visitor Telemetry
 
-[![WordPress Tested](https://img.shields.io/badge/WordPress-6.0%20to%207.1-blue.svg)](https://wordpress.org/plugins/agentlens/)
+[![WordPress Tested](https://img.shields.io/badge/WordPress-6.0%20to%207.1-blue.svg)](https://wordpress.org/plugins/inplainsite/)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-green.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 [![PHP](https://img.shields.io/badge/PHP-%3E%3D%207.4-blue.svg)](https://php.net/)
 [![Showcase](https://img.shields.io/badge/Showcase-agent--ready.builditwithai.xyz-orange.svg)](https://agent-ready.builditwithai.xyz)
 
 **Make your WordPress website agent-ready with Markdown twins, dynamic llms.txt, and WebMCP, while tracking AI crawler traffic and bot intent from access logs.**
 
-AgentLens transforms WordPress into native infrastructure for the agentic web. It arms your site with markdown twins (`/{slug}.md`), dynamic `llms.txt`, and a W3C WebMCP bridge for browser assistants, while providing granular, zero-overhead intelligence into how 42+ AI bots (GPTBot, ClaudeBot, PerplexityBot, etc.) crawl and consume your content.
+InPlainSite transforms WordPress into native infrastructure for the agentic web. It arms your site with markdown twins (`/{slug}.md`), dynamic `llms.txt`, and a W3C WebMCP bridge for browser assistants, while providing granular, zero-overhead intelligence into how 42+ AI bots (GPTBot, ClaudeBot, PerplexityBot, etc.) crawl and consume your content.
 
 The plugin keeps all data local to your WordPress site. It does not send logs or content to a third-party analytics service.
 
@@ -21,7 +21,7 @@ AI crawlers are already hitting public websites, but ordinary analytics reports 
 - Did a new bot or page appear yesterday?
 - Is traffic growing because of a crawl, a search index refresh, or an assistant fetch?
 
-Agent Ready answers those questions from the access log your server already produces.
+InPlainSite answers those questions from the access log your server already produces.
 
 ## Dashboard
 
@@ -37,9 +37,9 @@ The WordPress admin screen includes:
 
 The chart library is vendored in the plugin. The dashboard does not depend on a CDN.
 
-![Agent Ready overview](assets/screenshot-1.png)
+![InPlainSite overview](assets/screenshot-1.png)
 
-![Agent Ready settings and MCP connection](assets/screenshot-2.png)
+![InPlainSite settings and MCP connection](assets/screenshot-2.png)
 
 ## Agent-Ready Surfaces
 
@@ -82,7 +82,7 @@ Where it shows up:
 - The dashboard gains an **Agent Activity** section: counters, by-tool table, per-page table, 30-day trend. It renders independently of access-log health — the section works even when the log reader finds nothing.
 - The MCP endpoint gains a 7th tool, `agent_activity_summary` (totals, by tool, by page, daily trend; optional `days` argument, default 30).
 
-Toggle it per site under **Agent Ready → Settings → Agent Activity** (default: on).
+Toggle it per site under **InPlainSite → Settings → Agent Activity** (default: on).
 
 ## Install
 
@@ -90,17 +90,17 @@ Toggle it per site under **Agent Ready → Settings → Agent Activity** (defaul
 
 1. Download the repository as a ZIP from [GitHub](https://github.com/surendranb/agent-metrics).
 2. In WordPress, open **Plugins → Add New → Upload Plugin**.
-3. Upload the ZIP and activate **Agent Ready**.
-4. Open **Agent Ready** in the admin menu.
+3. Upload the ZIP and activate **InPlainSite**.
+4. Open **InPlainSite** in the admin menu.
 
 ### Server
 
 ```bash
 cd wp-content/plugins
-git clone https://github.com/surendranb/agent-metrics.git agent-metrics
+git clone https://github.com/surendranb/agent-metrics.git inplainsite
 ```
 
-Activate the plugin in WordPress, then open the **Agent Ready** screen.
+Activate the plugin in WordPress, then open the **InPlainSite** screen.
 
 ## Log Discovery
 
@@ -119,7 +119,7 @@ For a managed host, define the exact readable file path in `wp-config.php` befor
 define( 'AM_LOG_PATH', '/home/example/logs/access.log' );
 ```
 
-The web-server user must be able to read the file. Open **Agent Ready → Settings** to see every path tested and why it was accepted or rejected.
+The web-server user must be able to read the file. Open **InPlainSite → Settings** to see every path tested and why it was accepted or rejected.
 
 ## Supported Log Shape
 
@@ -137,7 +137,7 @@ Cloudflare dashboard exports are not read directly. Use an origin access log or 
 
 The plugin exposes a protected JSON-RPC MCP endpoint so an AI agent can query the same rollup shown in WordPress.
 
-After activation, open **Agent Ready → Settings** and copy the endpoint and generated API key. The endpoint is:
+After activation, open **InPlainSite → Settings** and copy the endpoint and generated API key. The endpoint is:
 
 ```text
 https://your-site.example/wp-json/agent-metrics/v1/mcp
@@ -164,7 +164,7 @@ The settings screen includes copy-ready connection snippets for OpenCode, Claude
 
 ## Anonymous Diagnostics
 
-Anonymous diagnostics are disabled by default. An administrator can enable them under **Agent Ready → Settings** to share plugin and MCP health metadata with the Agent Ready project. This includes product version, event type, status, latency, and parse health. It never includes the site URL, page paths, user agents, access logs, bot traffic, WordPress content, MCP arguments, MCP results, or credentials. The setting and anonymous installation ID are removed when the plugin is uninstalled.
+Anonymous diagnostics are disabled by default. An administrator can enable them under **InPlainSite → Settings** to share plugin and MCP health metadata with the InPlainSite project. This includes product version, event type, status, latency, and parse health. It never includes the site URL, page paths, user agents, access logs, bot traffic, WordPress content, MCP arguments, MCP results, or credentials. The setting and anonymous installation ID are removed when the plugin is uninstalled.
 
 ## Bot Catalog
 
@@ -181,7 +181,7 @@ Bot discovery and naming research is informed by [Cloudflare Radar's Bot Directo
 
 ## Data Storage
 
-Agent Ready stores every valid parsed request in a persistent WordPress table named with the site's table prefix, such as `wp_agent_metrics_hits`. Human and bot requests are both retained indefinitely in the MVP. Dashboard and MCP reports are derived from SQL queries over those event rows.
+InPlainSite stores every valid parsed request in a persistent WordPress table named with the site's table prefix, such as `wp_agent_metrics_hits`. Human and bot requests are both retained indefinitely in the MVP. Dashboard and MCP reports are derived from SQL queries over those event rows.
 
 The plugin tracks the active log file and byte offset so repeated refreshes do not duplicate requests. When a host rotates its logs, the plugin detects the new file and continues ingesting from its beginning. Historical rows remain available after the original log file is deleted.
 
@@ -192,7 +192,7 @@ This is a plain WordPress plugin. There is no frontend build step for the plugin
 Run PHP lint checks directly from the plugin repository:
 
 ```bash
-php -l agent-metrics.php
+php -l inplainsite.php
 for file in includes/*.php; do php -l "$file"; done
 ```
 
@@ -204,4 +204,4 @@ The plugin is an early real-world release. The local dashboard, parser, rollup, 
 
 ## License
 
-GPL-2.0-or-later. See the plugin header in `agent-metrics.php`.
+GPL-2.0-or-later. See the plugin header in `inplainsite.php`.

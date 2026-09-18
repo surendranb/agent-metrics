@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class AgentLens_Log_Reader {
+class InPlainSite_Log_Reader {
 
 	const MAX_BYTES = 2 * 1024 * 1024;
 	const MAX_LINES = 5000;
@@ -104,5 +104,6 @@ class AgentLens_Log_Reader {
 	}
 }
 
-class_alias( 'AgentLens_Log_Reader', 'Agent_Ready_Log_Reader' );
-class_alias( 'AgentLens_Log_Reader', 'AM_Log_Reader' );
+class_alias( 'InPlainSite_Log_Reader', 'AgentLens_Log_Reader' );
+class_alias( 'InPlainSite_Log_Reader', 'Agent_Ready_Log_Reader' );
+class_alias( 'InPlainSite_Log_Reader', 'AM_Log_Reader' );

@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class AgentLens_Markdown {
+class InPlainSite_Markdown {
 
 	const OPTION    = 'agent_ready_activity_enabled';
 	const QUERY_VAR = 'agent_ready_markdown';
@@ -19,6 +19,7 @@ class AgentLens_Markdown {
 	}
 
 	public static function query_vars( $vars ) {
+		$vars[] = 'inplainsite_markdown';
 		$vars[] = 'agentlens_markdown';
 		$vars[] = self::QUERY_VAR;
 		$vars[] = 'am_markdown';
@@ -49,6 +50,7 @@ class AgentLens_Markdown {
 			),
 			'callback'            => array( __CLASS__, 'rest_get' ),
 		);
+		register_rest_route( 'inplainsite/v1', '/page-markdown', $route_args );
 		register_rest_route( 'agentlens/v1', '/page-markdown', $route_args );
 		register_rest_route( 'agent-ready-website/v1', '/page-markdown', $route_args );
 		register_rest_route( 'agent-metrics/v1', '/page-markdown', $route_args );
@@ -391,5 +393,6 @@ class AgentLens_Markdown {
 	}
 }
 
-class_alias( 'AgentLens_Markdown', 'Agent_Ready_Markdown' );
-class_alias( 'AgentLens_Markdown', 'AM_Markdown' );
+class_alias( 'InPlainSite_Markdown', 'AgentLens_Markdown' );
+class_alias( 'InPlainSite_Markdown', 'Agent_Ready_Markdown' );
+class_alias( 'InPlainSite_Markdown', 'AM_Markdown' );

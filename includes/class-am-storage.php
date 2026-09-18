@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class AgentLens_Storage {
+class InPlainSite_Storage {
 
 	const VERSION = '1.1';
 	const OPTION  = 'agent_ready_storage_version';
@@ -127,5 +127,6 @@ class AgentLens_Storage {
 	}
 }
 
-class_alias( 'AgentLens_Storage', 'Agent_Ready_Storage' );
-class_alias( 'AgentLens_Storage', 'AM_Storage' );
+class_alias( 'InPlainSite_Storage', 'AgentLens_Storage' );
+class_alias( 'InPlainSite_Storage', 'Agent_Ready_Storage' );
+class_alias( 'InPlainSite_Storage', 'AM_Storage' );

@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class AgentLens_Parser {
+class InPlainSite_Parser {
 
 	public static function parse( $line ) {
 		$line = rtrim( (string) $line, "\r\n" );
@@ -48,5 +48,6 @@ class AgentLens_Parser {
 	}
 }
 
-class_alias( 'AgentLens_Parser', 'Agent_Ready_Parser' );
-class_alias( 'AgentLens_Parser', 'AM_Parser' );
+class_alias( 'InPlainSite_Parser', 'AgentLens_Parser' );
+class_alias( 'InPlainSite_Parser', 'Agent_Ready_Parser' );
+class_alias( 'InPlainSite_Parser', 'AM_Parser' );

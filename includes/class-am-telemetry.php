@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class AgentLens_Telemetry {
+class InPlainSite_Telemetry {
 
 	const ENABLED   = 'agent_ready_telemetry_enabled';
 	const INSTALL   = 'agent_ready_telemetry_install_id';
@@ -22,6 +22,12 @@ class AgentLens_Telemetry {
 	);
 
 	public static function enabled() {
+		if ( defined( 'INPLAINSITE_TELEMETRY_ENABLED' ) ) {
+			return (bool) INPLAINSITE_TELEMETRY_ENABLED;
+		}
+		if ( defined( 'AGENTLENS_TELEMETRY_ENABLED' ) ) {
+			return (bool) AGENTLENS_TELEMETRY_ENABLED;
+		}
 		if ( defined( 'AGENT_READY_TELEMETRY_ENABLED' ) ) {
 			return (bool) AGENT_READY_TELEMETRY_ENABLED;
 		}
@@ -111,5 +117,6 @@ class AgentLens_Telemetry {
 	}
 }
 
-class_alias( 'AgentLens_Telemetry', 'Agent_Ready_Telemetry' );
-class_alias( 'AgentLens_Telemetry', 'AM_Telemetry' );
+class_alias( 'InPlainSite_Telemetry', 'AgentLens_Telemetry' );
+class_alias( 'InPlainSite_Telemetry', 'Agent_Ready_Telemetry' );
+class_alias( 'InPlainSite_Telemetry', 'AM_Telemetry' );

@@ -1,7 +1,7 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 
-class AgentLens_Prober {
+class InPlainSite_Prober {
 
 	public static function probe() {
 		$diag       = array();
@@ -63,12 +63,20 @@ class AgentLens_Prober {
 
 	private static function candidates() {
 		$paths = array();
-		if ( defined( 'AGENT_READY_LOG_PATH' ) && AGENT_READY_LOG_PATH ) {
+		if ( defined( 'INPLAINSITE_LOG_PATH' ) && INPLAINSITE_LOG_PATH ) {
+			$paths['dev (INPLAINSITE_LOG_PATH)'] = INPLAINSITE_LOG_PATH;
+		} elseif ( defined( 'AGENTLENS_LOG_PATH' ) && AGENTLENS_LOG_PATH ) {
+			$paths['dev (AGENTLENS_LOG_PATH)'] = AGENTLENS_LOG_PATH;
+		} elseif ( defined( 'AGENT_READY_LOG_PATH' ) && AGENT_READY_LOG_PATH ) {
 			$paths['dev (AGENT_READY_LOG_PATH)'] = AGENT_READY_LOG_PATH;
 		} elseif ( defined( 'AM_LOG_PATH' ) && AM_LOG_PATH ) {
 			$paths['dev (AM_LOG_PATH)'] = AM_LOG_PATH;
 		}
-		if ( defined( 'AGENT_READY_LOG_DIR' ) && AGENT_READY_LOG_DIR ) {
+		if ( defined( 'INPLAINSITE_LOG_DIR' ) && INPLAINSITE_LOG_DIR ) {
+			$paths['dev (INPLAINSITE_LOG_DIR)'] = INPLAINSITE_LOG_DIR;
+		} elseif ( defined( 'AGENTLENS_LOG_DIR' ) && AGENTLENS_LOG_DIR ) {
+			$paths['dev (AGENTLENS_LOG_DIR)'] = AGENTLENS_LOG_DIR;
+		} elseif ( defined( 'AGENT_READY_LOG_DIR' ) && AGENT_READY_LOG_DIR ) {
 			$paths['dev (AGENT_READY_LOG_DIR)'] = AGENT_READY_LOG_DIR;
 		} elseif ( defined( 'AM_LOG_DIR' ) && AM_LOG_DIR ) {
 			$paths['dev (AM_LOG_DIR)'] = AM_LOG_DIR;
@@ -84,5 +92,6 @@ class AgentLens_Prober {
 	}
 }
 
-class_alias( 'AgentLens_Prober', 'Agent_Ready_Prober' );
-class_alias( 'AgentLens_Prober', 'AM_Prober' );
+class_alias( 'InPlainSite_Prober', 'AgentLens_Prober' );
+class_alias( 'InPlainSite_Prober', 'Agent_Ready_Prober' );
+class_alias( 'InPlainSite_Prober', 'AM_Prober' );
