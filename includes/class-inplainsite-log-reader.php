@@ -103,7 +103,3 @@ class InPlainSite_Log_Reader {
 		);
 	}
 }
-
-class_alias( 'InPlainSite_Log_Reader', 'AgentLens_Log_Reader' );
-class_alias( 'InPlainSite_Log_Reader', 'Agent_Ready_Log_Reader' );
-class_alias( 'InPlainSite_Log_Reader', 'AM_Log_Reader' );

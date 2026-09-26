@@ -5,101 +5,63 @@ class InPlainSite_Admin {
 
 	private static $charts = array();
 
-	const CONSENT      = 'agent_ready_telemetry_consent';
-	const CONSENT_RMD  = 'agent_ready_telemetry_consent_remind';
-
 	public static function menu() {
 		add_menu_page( 'InPlainSite: Clean Markdown & Visitor Telemetry', 'InPlainSite', 'manage_options', 'inplainsite', array( __CLASS__, 'render' ), 'dashicons-chart-area', 26 );
 	}
 
-	public static function handle_consent() {
-		if ( isset( $_GET['am_dismiss_advocacy'] ) && current_user_can( 'manage_options' ) ) {
-			check_admin_referer( 'am_dismiss_advocacy' );
-			update_option( 'agent_ready_advocacy_dismissed', 'yes', false );
-			update_option( 'am_advocacy_dismissed', 'yes', false );
-			wp_safe_redirect( remove_query_arg( array( 'am_dismiss_advocacy', '_wpnonce' ) ) );
+	public static function handle_actions() {
+		if ( isset( $_GET['inplainsite_dismiss_advocacy'] ) && current_user_can( 'manage_options' ) ) {
+			check_admin_referer( 'inplainsite_dismiss_advocacy' );
+			update_option( 'inplainsite_advocacy_dismissed', 'yes', false );
+			wp_safe_redirect( remove_query_arg( array( 'inplainsite_dismiss_advocacy', '_wpnonce' ) ) );
 			exit;
 		}
-		$choice = isset( $_GET['am_consent'] ) ? sanitize_key( $_GET['am_consent'] ) : '';
-		if ( ! in_array( $choice, array( 'yes', 'later', 'no' ), true ) || ! current_user_can( 'manage_options' ) ) {
-			return;
+
+		if ( isset( $_POST['inplainsite_action'] ) && current_user_can( 'manage_options' ) && check_admin_referer( 'inplainsite_admin' ) ) {
+			$action = sanitize_key( $_POST['inplainsite_action'] );
+			if ( 'refresh' === $action ) {
+				InPlainSite_Rollup::invalidate();
+			} elseif ( 'regenerate_key' === $action ) {
+				update_option( 'inplainsite_mcp_key', wp_generate_password( 32, false, false ), false );
+			} elseif ( 'settings' === $action ) {
+				$raw_val = isset( $_POST['inplainsite_parse_interval_minutes'] ) ? sanitize_text_field( wp_unslash( $_POST['inplainsite_parse_interval_minutes'] ) ) : '0';
+				$val     = (int) $raw_val;
+				$valid   = array( 0, 5, 15, 30, 60, 180 );
+				update_option( 'inplainsite_parse_interval_minutes', in_array( $val, $valid, true ) ? $val : 0 );
+				update_option( InPlainSite_Markdown::OPTION, ! empty( $_POST['inplainsite_agent_activity'] ) ? '1' : '0', false );
+			}
+			$tab = isset( $_GET['inplainsite_tab'] ) ? sanitize_key( wp_unslash( $_GET['inplainsite_tab'] ) ) : ( isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'overview' );
+			wp_safe_redirect( add_query_arg( array( 'page' => 'inplainsite', 'inplainsite_tab' => $tab ), admin_url( 'admin.php' ) ) );
+			exit;
 		}
-		check_admin_referer( 'am_consent' );
-		if ( 'yes' === $choice ) {
-			AM_Telemetry::set_enabled( true );
-			update_option( self::CONSENT, 'yes', false );
-			update_option( 'am_telemetry_consent', 'yes', false );
-		} elseif ( 'later' === $choice ) {
-			update_option( self::CONSENT, 'later', false );
-			update_option( self::CONSENT_RMD, time() + 7 * DAY_IN_SECONDS, false );
-			update_option( 'am_telemetry_consent', 'later', false );
-			update_option( 'am_telemetry_consent_remind', time() + 7 * DAY_IN_SECONDS, false );
-		} else {
-			update_option( self::CONSENT, 'no', false );
-			update_option( 'am_telemetry_consent', 'no', false );
-		}
-		wp_safe_redirect( remove_query_arg( array( 'am_consent', '_wpnonce' ) ) );
-		exit;
 	}
 
 	public static function advocacy_notice() {
-		if ( ! current_user_can( 'manage_options' ) || get_option( 'agent_ready_advocacy_dismissed' ) || get_option( 'am_advocacy_dismissed' ) ) {
+		if ( ! current_user_can( 'manage_options' ) || get_option( 'inplainsite_advocacy_dismissed' ) ) {
 			return;
 		}
 		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( ! $screen || ! in_array( $screen->id, array( 'toplevel_page_inplainsite', 'toplevel_page_agentlens', 'toplevel_page_agent-ready-website', 'toplevel_page_agent-metrics' ), true ) ) {
+		if ( ! $screen || 'toplevel_page_inplainsite' !== $screen->id ) {
 			return;
 		}
-		$rollup         = AM_Rollup::get();
+		$rollup         = InPlainSite_Rollup::get();
 		$total_hits     = (int) ( $rollup['totals']['total_hits'] ?? 0 );
-		$activity       = AM_Agent_Activity::summary( 30 );
+		$activity       = InPlainSite_Agent_Activity::summary( 30 );
 		$total_activity = array_sum( $activity['totals'] ?? array() );
 		$total_events   = $total_hits + $total_activity;
 		if ( $total_events < 50 ) {
 			return;
 		}
-		$dismiss = wp_nonce_url( add_query_arg( 'am_dismiss_advocacy', '1' ), 'am_dismiss_advocacy' );
+		$dismiss = wp_nonce_url( add_query_arg( 'inplainsite_dismiss_advocacy', '1' ), 'inplainsite_dismiss_advocacy' );
 		?>
 		<div class="notice notice-info is-dismissible" style="background:#fef6e4;border-left-color:#f582ae;padding:12px 16px;margin:16px 0">
 			<p style="margin:0 0 8px;font-size:13px;color:#001858">
 				<strong>InPlainSite has recorded <?php echo esc_html( number_format( $total_events ) ); ?> AI crawler and agent requests!</strong>
 			</p>
 			<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-				<a href="<?php echo esc_url( 'https://twitter.com/intent/tweet?text=' . rawurlencode( 'Making my WordPress site AI agent-ready with Markdown twins & visitor telemetry: https://builditwithai.xyz/inplainsite' ) ); ?>" target="_blank" class="button" style="background:#8bd3dd;color:#001858;border:none;font-weight:600">💬 Share on X</a>
+				<a href="<?php echo esc_url( 'https://twitter.com/intent/tweet?text=' . rawurlencode( 'Making my WordPress site AI agent-ready with Markdown twins & visitor telemetry using InPlainSite: https://github.com/surendranb/agent-metrics' ) ); ?>" target="_blank" class="button" style="background:#8bd3dd;color:#001858;border:none;font-weight:600">💬 Share on X</a>
 				<a href="<?php echo esc_url( $dismiss ); ?>" style="color:#172c66;text-decoration:underline;font-size:12px;margin-left:8px">Dismiss</a>
 			</div>
-		</div>
-		<?php
-	}
-
-	public static function consent_notice() {
-		if ( ! current_user_can( 'manage_options' ) || AM_Telemetry::enabled() ) {
-			return;
-		}
-		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-		if ( ! $screen || ! in_array( $screen->id, array( 'toplevel_page_inplainsite', 'toplevel_page_agentlens', 'toplevel_page_agent-ready-website', 'toplevel_page_agent-metrics' ), true ) ) {
-			return;
-		}
-		$consent = get_option( self::CONSENT, get_option( 'am_telemetry_consent', '' ) );
-		if ( 'yes' === $consent || 'no' === $consent ) {
-			return;
-		}
-		if ( 'later' === $consent && (int) get_option( self::CONSENT_RMD, 0 ) > time() ) {
-			return;
-		}
-		$yes    = wp_nonce_url( add_query_arg( 'am_consent', 'yes' ), 'am_consent' );
-		$later  = wp_nonce_url( add_query_arg( 'am_consent', 'later' ), 'am_consent' );
-		$no     = wp_nonce_url( add_query_arg( 'am_consent', 'no' ), 'am_consent' );
-		$privacy = 'https://builditwithai.xyz/privacy/';
-		?>
-		<div class="notice notice-info" style="background:#fef6e4;border-left-color:#8bd3dd;padding:14px 16px">
-			<p style="margin:0 0 8px;font-weight:600;color:#001858">Help improve AI Bot Traffic Analytics</p>
-			<p style="margin:0 0 8px;color:#172c66">Optional anonymous diagnostics help me fix bugs and plan features. With your consent, the plugin shares health events only: version numbers, parse status and timing, tool usage, and error messages. <a href="<?php echo esc_url( $privacy ); ?>" target="_blank" rel="noopener noreferrer">Read the full list of events and fields</a>.</p>
-			<p style="margin:0;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-				<a href="<?php echo esc_url( $yes ); ?>" class="button button-primary" style="background:#f582ae;border-color:#f582ae;color:#001858">Enable diagnostics</a>
-				<a href="<?php echo esc_url( $later ); ?>" class="button">Remind me later</a>
-				<a href="<?php echo esc_url( $no ); ?>" class="button">Decline</a>
-			</p>
 		</div>
 		<?php
 	}
@@ -108,39 +70,22 @@ class InPlainSite_Admin {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-		$plugin_file = defined( 'INPLAINSITE_FILE' ) ? INPLAINSITE_FILE : ( defined( 'AGENTLENS_FILE' ) ? AGENTLENS_FILE : ( defined( 'AGENT_READY_FILE' ) ? AGENT_READY_FILE : AM_PLUGIN_DIR . 'inplainsite.php' ) );
-		wp_enqueue_script( 'inplainsite-chart', plugins_url( 'assets/vendor/chart.umd.min.js', $plugin_file ), array(), '4.5.1', true );
-		wp_enqueue_script( 'inplainsite-admin', plugins_url( 'assets/js/admin.js', $plugin_file ), array(), defined( 'INPLAINSITE_VERSION' ) ? INPLAINSITE_VERSION : AM_VERSION, true );
-		if ( isset( $_POST['am_action'] ) && check_admin_referer( 'am_admin' ) ) {
-			if ( 'refresh' === $_POST['am_action'] ) {
-				AM_Rollup::invalidate();
-			}
-			if ( 'regenerate_key' === $_POST['am_action'] ) {
-				update_option( 'am_mcp_key', wp_generate_password( 32, false, false ), false );
-			}
-			if ( 'settings' === $_POST['am_action'] ) {
-				$raw_val = isset( $_POST['am_parse_interval_minutes'] ) ? sanitize_text_field( wp_unslash( $_POST['am_parse_interval_minutes'] ) ) : '0';
-				$val     = (int) $raw_val;
-				$valid   = array( 0, 5, 15, 30, 60, 180 );
-				update_option( 'am_parse_interval_minutes', in_array( $val, $valid, true ) ? $val : 0 );
-				AM_Telemetry::set_enabled( ! empty( $_POST['am_telemetry_enabled'] ) );
-				update_option( self::CONSENT, AM_Telemetry::enabled() ? 'yes' : get_option( self::CONSENT, '' ), false );
-				update_option( AM_Markdown::OPTION, ! empty( $_POST['am_agent_activity'] ) ? '1' : '0', false );
-			}
-		}
-		$rollup  = AM_Rollup::get();
-		$raw_tab = isset( $_GET['am_tab'] ) ? sanitize_key( wp_unslash( $_GET['am_tab'] ) ) : '';
+		wp_enqueue_script( 'inplainsite-chart', plugins_url( 'assets/vendor/chart.umd.min.js', INPLAINSITE_FILE ), array(), '4.5.1', true );
+		wp_enqueue_script( 'inplainsite-admin', plugins_url( 'assets/js/admin.js', INPLAINSITE_FILE ), array(), INPLAINSITE_VERSION, true );
+		$rollup  = InPlainSite_Rollup::get();
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab navigation parameter.
+		$raw_tab = isset( $_GET['inplainsite_tab'] ) ? sanitize_key( wp_unslash( $_GET['inplainsite_tab'] ) ) : ( isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '' );
 		$tab     = in_array( $raw_tab, array( 'overview', 'bots', 'pages', 'trends', 'settings' ), true ) ? $raw_tab : 'overview';
 		?>
 		<div class="wrap" style="background:#fef6e4;min-height:100vh;margin:0;padding:24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#172c66">
 			<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
 				<div>
-					<h1 style="margin:0;color:#001858">Agent Ready</h1>
-					<p style="margin:4px 0 0;color:#172c66">AI Agent Readiness & Bot Traffic Analytics</p>
+					<h1 style="margin:0;color:#001858">InPlainSite</h1>
+					<p style="margin:4px 0 0;color:#172c66">Clean Markdown & Visitor Telemetry</p>
 				</div>
 				<form method="post">
-					<?php wp_nonce_field( 'am_admin' ); ?>
-					<input type="hidden" name="am_action" value="refresh">
+					<?php wp_nonce_field( 'inplainsite_admin' ); ?>
+					<input type="hidden" name="inplainsite_action" value="refresh">
 					<button type="submit" class="button" style="background:#f582ae;border:none;color:#001858;font-weight:600;padding:6px 16px;border-radius:8px;cursor:pointer">Parse logs now</button>
 				</form>
 			</div>
@@ -157,7 +102,7 @@ class InPlainSite_Admin {
 					$active = $slug === $tab;
 					?>
 					<a href="<?php echo esc_url( self::tab_url( $slug ) ); ?>"
-						style="padding:8px 16px;border-radius:10px 10px 0 0;text-decoration:none;font-weight:600;<?php echo $active ? 'background:#8bd3dd;color:#001858;' : 'background:#f3d2c1;color:#172c66;'; ?>"><?php echo esc_html( $label ); ?></a>
+						style="padding:8px 16px;border-radius:10px 10px 0 0;text-decoration:none;font-weight:600;<?php echo esc_attr( $active ? 'background:#8bd3dd;color:#001858;' : 'background:#f3d2c1;color:#172c66;' ); ?>"><?php echo esc_html( $label ); ?></a>
 				<?php endforeach; ?>
 			</div>
 			<?php self::render_mcp_panel(); ?>
@@ -165,14 +110,12 @@ class InPlainSite_Admin {
 			<?php self::emit_chart_js(); ?>
 			<div style="margin-top:28px;padding-top:14px;border-top:1px solid #f3d2c1;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-size:12px;color:#172c66">
 				<div>
-					<strong>InPlainSite</strong> v<?php echo esc_html( AM_VERSION ); ?> &middot; Built by <a href="https://builditwithai.xyz" target="_blank" style="color:#001858;font-weight:600;text-decoration:none">builditwithai.xyz</a>
+					<strong>InPlainSite</strong> v<?php echo esc_html( INPLAINSITE_VERSION ); ?> &middot; Built by <a href="https://builditwithai.xyz" target="_blank" style="color:#001858;font-weight:600;text-decoration:none">builditwithai.xyz</a>
 				</div>
 				<div style="display:flex;gap:14px;align-items:center">
 					<a href="https://github.com/surendranb/agent-metrics" target="_blank" style="color:#001858;text-decoration:none;font-weight:600">⭐ Star on GitHub</a>
 					<span>&middot;</span>
-					<a href="<?php echo esc_url( 'https://twitter.com/intent/tweet?text=' . rawurlencode( 'Making my WordPress site AI agent-ready with Markdown twins & visitor telemetry using InPlainSite by @builditwithai: https://builditwithai.xyz/inplainsite' ) ); ?>" target="_blank" style="color:#001858;text-decoration:none;font-weight:600">💬 Share on X</a>
-					<span>&middot;</span>
-					<a href="https://wordpress.org/support/plugin/inplainsite/reviews/#new-post" target="_blank" style="color:#001858;text-decoration:none;font-weight:600">★ Rate 5 Stars</a>
+					<a href="<?php echo esc_url( 'https://twitter.com/intent/tweet?text=' . rawurlencode( 'Making my WordPress site AI agent-ready with Markdown twins & visitor telemetry using InPlainSite by @builditwithai: https://github.com/surendranb/agent-metrics' ) ); ?>" target="_blank" style="color:#001858;text-decoration:none;font-weight:600">💬 Share on X</a>
 				</div>
 			</div>
 		</div>
@@ -180,11 +123,11 @@ class InPlainSite_Admin {
 	}
 
 	public static function tab_url( $tab ) {
-		return add_query_arg( 'am_tab', $tab, admin_url( 'admin.php?page=inplainsite' ) );
+		return add_query_arg( 'inplainsite_tab', $tab, admin_url( 'admin.php?page=inplainsite' ) );
 	}
 
 	private static function render_tab( $tab, $rollup ) {
-		$brief = is_array( $rollup ) ? AM_Brief::get( $rollup ) : null;
+		$brief = is_array( $rollup ) ? InPlainSite_Brief::get( $rollup ) : null;
 		if ( ! is_array( $rollup ) ) {
 			self::render_parsing_notice();
 		} elseif ( $rollup['error'] && 'settings' !== $tab ) {
@@ -194,6 +137,9 @@ class InPlainSite_Admin {
 			}
 		} elseif ( ! $brief && 'settings' !== $tab ) {
 			self::render_empty_state();
+			if ( 'overview' === $tab ) {
+				self::render_agent_activity();
+			}
 		} else {
 			switch ( $tab ) {
 				case 'settings':
@@ -247,24 +193,19 @@ class InPlainSite_Admin {
 	}
 
 	private static function render_settings( $rollup ) {
-		if ( AM_Telemetry::enabled() && ! get_option( 'am_telemetry_mcp_configured', false ) ) {
-			update_option( 'am_telemetry_mcp_configured', true, false );
-			AM_Telemetry::send( 'mcp_configured', array( 'status' => 'success' ) );
-		}
-		$key       = get_option( 'am_mcp_key', '' );
-		$endpoint  = rest_url( 'agent-metrics/v1/mcp' );
-		$interval  = (int) get_option( 'am_parse_interval_minutes', 0 );
-		$auto      = 0 === $interval;
-		$current   = $auto ? AM_Rollup::interval() / MINUTE_IN_SECONDS : $interval;
-		$rec       = ! empty( $rollup['recommended_interval_min'] ) ? (int) $rollup['recommended_interval_min'] : 30;
-		$telemetry = AM_Telemetry::enabled();
+		$key      = get_option( 'inplainsite_mcp_key', '' );
+		$endpoint = rest_url( 'inplainsite/v1/mcp' );
+		$interval = (int) get_option( 'inplainsite_parse_interval_minutes', 0 );
+		$auto     = 0 === $interval;
+		$current  = $auto ? InPlainSite_Rollup::interval() / MINUTE_IN_SECONDS : $interval;
+		$rec      = ! empty( $rollup['recommended_interval_min'] ) ? (int) $rollup['recommended_interval_min'] : 30;
 		?>
 		<div style="background:#fffffe;border-radius:12px;padding:16px;box-shadow:0 1px 3px rgba(0,24,88,.08)">
 			<h2 style="margin:0 0 10px;color:#001858">Parse frequency</h2>
 			<form method="post" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-				<?php wp_nonce_field( 'am_admin' ); ?>
-				<input type="hidden" name="am_action" value="settings">
-				<select name="am_parse_interval_minutes" style="padding:6px 10px;border-radius:8px;border:1px solid #8bd3dd;background:#fff;color:#001858">
+				<?php wp_nonce_field( 'inplainsite_admin' ); ?>
+				<input type="hidden" name="inplainsite_action" value="settings">
+				<select name="inplainsite_parse_interval_minutes" style="padding:6px 10px;border-radius:8px;border:1px solid #8bd3dd;background:#fff;color:#001858">
 					<option value="0" <?php selected( $interval, 0 ); ?>>Auto — adapt to traffic</option>
 					<option value="5" <?php selected( $interval, 5 ); ?>>Every 5 minutes</option>
 					<option value="15" <?php selected( $interval, 15 ); ?>>Every 15 minutes</option>
@@ -281,15 +222,11 @@ class InPlainSite_Admin {
 					<?php endif; ?>
 				</span>
 				<label style="display:flex;align-items:center;gap:6px;color:#172c66;font-size:13px">
-					<input type="checkbox" name="am_telemetry_enabled" value="1" <?php checked( $telemetry ); ?>>
-					Share anonymous diagnostics (plugin and MCP health only)
-				</label>
-				<label style="display:flex;align-items:center;gap:6px;color:#172c66;font-size:13px">
-					<input type="checkbox" name="am_agent_activity" value="1" <?php checked( AM_Markdown::enabled() ); ?>>
+					<input type="checkbox" name="inplainsite_agent_activity" value="1" <?php checked( InPlainSite_Markdown::enabled() ); ?>>
 					Agent activity surfaces (markdown, llms.txt, WebMCP bridge)
 				</label>
 			</form>
-			<p style="margin:10px 0 0;color:#172c66;font-size:12px">Optional diagnostics include version, latency, parse health, and error messages. They never include site URLs, page paths, logs, traffic data, or MCP payloads. Cron runs when the site is visited; dashboard and agent reads refresh on demand if data is older than the interval.</p>
+			<p style="margin:10px 0 0;color:#172c66;font-size:12px">Cron runs when the site is visited; dashboard and agent reads refresh on demand if data is older than the interval.</p>
 			<p style="margin:6px 0 0;color:#172c66;font-size:12px">Agent activity surfaces let AI agents read pages as markdown ({slug}.md), discover the site via /llms.txt, and use in-page WebMCP tools. When off, none of these are served or enqueued.</p>
 		</div>
 
@@ -300,8 +237,8 @@ class InPlainSite_Admin {
 					<p style="margin:0;color:#172c66;font-size:13px">Agents can query this same data over MCP. Connect with <code style="background:#f3d2c1;border-radius:4px;padding:1px 5px">opencode</code>, Claude Code, etc. using the endpoint and key below.</p>
 				</div>
 				<form method="post">
-					<?php wp_nonce_field( 'am_admin' ); ?>
-					<input type="hidden" name="am_action" value="regenerate_key">
+					<?php wp_nonce_field( 'inplainsite_admin' ); ?>
+					<input type="hidden" name="inplainsite_action" value="regenerate_key">
 					<button type="submit" class="button" style="background:#8bd3dd;border:none;color:#001858;font-weight:600;padding:6px 14px;border-radius:8px;cursor:pointer">Regenerate key</button>
 				</form>
 			</div>
@@ -317,7 +254,7 @@ class InPlainSite_Admin {
 
 	private static function render_bots( $rollup ) {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter navigation parameter.
-		$raw_cat  = isset( $_GET['am_cat'] ) ? sanitize_key( wp_unslash( $_GET['am_cat'] ) ) : '';
+		$raw_cat  = isset( $_GET['inplainsite_cat'] ) ? sanitize_key( wp_unslash( $_GET['inplainsite_cat'] ) ) : '';
 		$cat      = in_array( $raw_cat, array( 'training', 'search', 'on-demand' ), true ) ? $raw_cat : '';
 		$bot_rows = array();
 		$total    = 0;
@@ -355,8 +292,8 @@ class InPlainSite_Admin {
 					foreach ( $chips as $val => $label ) :
 						$active = $val === $cat;
 						?>
-						<a href="<?php echo esc_url( $val ? add_query_arg( 'am_cat', $val, self::tab_url( 'bots' ) ) : self::tab_url( 'bots' ) ); ?>"
-							style="padding:4px 12px;border-radius:999px;text-decoration:none;font-size:12px;font-weight:600;<?php echo $active ? 'background:#f582ae;color:#001858;' : 'background:#f3d2c1;color:#172c66;'; ?>"><?php echo esc_html( $label ); ?></a>
+						<a href="<?php echo esc_url( $val ? add_query_arg( 'inplainsite_cat', $val, self::tab_url( 'bots' ) ) : self::tab_url( 'bots' ) ); ?>"
+							style="padding:4px 12px;border-radius:999px;text-decoration:none;font-size:12px;font-weight:600;<?php echo esc_attr( $active ? 'background:#f582ae;color:#001858;' : 'background:#f3d2c1;color:#172c66;' ); ?>"><?php echo esc_html( $label ); ?></a>
 					<?php endforeach; ?>
 				</div>
 			</div>
@@ -381,7 +318,7 @@ class InPlainSite_Admin {
 					</tr>
 				<?php endforeach; ?>
 				<?php if ( ! $bot_rows ) : ?>
-					<tr><td colspan="4" style="padding:16px;color:#172c66">No AI bot hits<?php echo $cat ? ' in this category' : ''; ?> (yet).</td></tr>
+					<tr><td colspan="4" style="padding:16px;color:#172c66">No AI bot hits<?php echo esc_html( $cat ? ' in this category' : '' ); ?> (yet).</td></tr>
 				<?php endif; ?>
 				</tbody>
 			</table>
@@ -561,7 +498,7 @@ class InPlainSite_Admin {
 	}
 
 	private static function render_agent_activity() {
-		$s     = AM_Agent_Activity::summary( 30 );
+		$s     = InPlainSite_Agent_Activity::summary( 30 );
 		$t     = $s['totals'];
 		$total = array_sum( $t );
 		$cards = array(
@@ -620,7 +557,7 @@ class InPlainSite_Admin {
 				</div>
 			</div>
 			<?php
-			$id             = 'am-chart-agent';
+			$id             = 'inplainsite-chart-agent';
 			self::$charts[] = array(
 				'id'     => $id,
 				'config' => array(
@@ -663,12 +600,12 @@ class InPlainSite_Admin {
 	}
 
 	private static function render_mcp_panel() {
-		$key      = get_option( 'am_mcp_key', '' );
-		$endpoint = rest_url( 'agent-metrics/v1/mcp' );
+		$key      = get_option( 'inplainsite_mcp_key', '' );
+		$endpoint = rest_url( 'inplainsite/v1/mcp' );
 		$opencode = wp_json_encode(
 			array(
 				'mcp' => array(
-					'agent-metrics' => array(
+					'inplainsite' => array(
 						'type'    => 'remote',
 						'url'     => $endpoint,
 						'headers' => array( 'Authorization' => 'Bearer ' . $key ),
@@ -677,8 +614,8 @@ class InPlainSite_Admin {
 			),
 			JSON_UNESCAPED_SLASHES
 		);
-		$claude   = 'claude mcp add agent-metrics --transport http ' . $endpoint . ' --header "Authorization: Bearer ' . $key . '"';
-		$cursor   = 'cursor mcp add agent-metrics --transport http ' . $endpoint . ' --header "Authorization: Bearer ' . $key . '"';
+		$claude   = 'claude mcp add inplainsite --transport http ' . $endpoint . ' --header "Authorization: Bearer ' . $key . '"';
+		$cursor   = 'cursor mcp add inplainsite --transport http ' . $endpoint . ' --header "Authorization: Bearer ' . $key . '"';
 		$clients  = array(
 			'opencode'    => array(
 				'monogram' => 'oc',
@@ -705,15 +642,15 @@ class InPlainSite_Admin {
 		<div style="display:flex;align-items:center;gap:12px;background:#fffffe;border-radius:12px;padding:10px 14px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,24,88,.08);flex-wrap:wrap">
 			<div style="display:flex;gap:8px">
 				<?php foreach ( $clients as $name => $c ) : ?>
-					<button type="button" class="am-logo" data-config="<?php echo esc_attr( $c['config'] ); ?>"
+					<button type="button" class="inplainsite-logo am-logo" data-config="<?php echo esc_attr( $c['config'] ); ?>"
 						title="<?php echo esc_attr( $name ); ?>"
 						style="width:38px;height:38px;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:13px;color:<?php echo esc_attr( $c['fg'] ); ?>;background:<?php echo esc_attr( $c['bg'] ); ?>"><?php echo esc_html( $c['monogram'] ); ?></button>
 				<?php endforeach; ?>
 			</div>
-			<input id="am-mcp-config" type="text" readonly
+			<input id="inplainsite-mcp-config" type="text" readonly
 				style="flex:1;min-width:200px;max-width:560px;height:38px;background:#fef6e4;border:1px solid #f3d2c1;border-radius:8px;padding:0 10px;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#001858"
 				value="<?php echo esc_attr( $default['config'] ); ?>">
-			<button type="button" id="am-mcp-copy" class="button am-copy"
+			<button type="button" id="inplainsite-mcp-copy" class="button inplainsite-copy am-copy"
 				style="background:#f582ae;border:none;color:#001858;font-weight:600;padding:8px 18px;border-radius:8px;cursor:pointer">copy</button>
 		</div>
 		<?php
@@ -726,7 +663,7 @@ class InPlainSite_Admin {
 			return;
 		}
 		$delta          = $trend['prev_total'] > 0 ? round( 100 * ( $trend['total'] - $trend['prev_total'] ) / $trend['prev_total'] ) : null;
-		$id             = 'am-chart-line';
+		$id             = 'inplainsite-chart-line';
 		self::$charts[] = array(
 			'id'     => $id,
 			'config' => array(
@@ -765,7 +702,7 @@ class InPlainSite_Admin {
 			<h3 style="margin:0 0 10px;color:#001858">30-day trend — bot hits per day</h3>
 			<canvas id="<?php echo esc_attr( $id ); ?>" style="width:100%;max-height:260px"></canvas>
 			<?php if ( null !== $delta ) : ?>
-				<p style="margin:8px 0 0;color:#172c66;font-size:13px"><?php echo $delta >= 0 ? '▲' : '▼'; ?> <?php echo esc_html( abs( $delta ) ); ?>% vs the previous day</p>
+				<p style="margin:8px 0 0;color:#172c66;font-size:13px"><?php echo esc_html( $delta >= 0 ? '▲' : '▼' ); ?> <?php echo esc_html( abs( $delta ) ); ?>% vs the previous day</p>
 			<?php endif; ?>
 		</div>
 		<?php
@@ -806,7 +743,7 @@ class InPlainSite_Admin {
 				'stack'           => 'hits',
 			);
 		}
-		$id             = 'am-chart-area';
+		$id             = 'inplainsite-chart-area';
 		self::$charts[] = array(
 			'id'     => $id,
 			'config' => array(
@@ -845,12 +782,8 @@ class InPlainSite_Admin {
 		if ( ! self::$charts ) {
 			return;
 		}
-		$js = 'document.addEventListener("DOMContentLoaded",function(){window.AM_CHARTS=' . wp_json_encode( self::$charts )
-			. ';AM_CHARTS.forEach(function(c){var el=document.getElementById(c.id);if(el&&window.Chart){new Chart(el,c.config);}});});';
+		$js = 'document.addEventListener("DOMContentLoaded",function(){window.INPLAINSITE_CHARTS=' . wp_json_encode( self::$charts )
+			. ';INPLAINSITE_CHARTS.forEach(function(c){var el=document.getElementById(c.id);if(el&&window.Chart){new Chart(el,c.config);}});});';
 		wp_add_inline_script( 'inplainsite-chart', $js, 'after' );
 	}
 }
-
-class_alias( 'InPlainSite_Admin', 'AgentLens_Admin' );
-class_alias( 'InPlainSite_Admin', 'Agent_Ready_Admin' );
-class_alias( 'InPlainSite_Admin', 'AM_Admin' );

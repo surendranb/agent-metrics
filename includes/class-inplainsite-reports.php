@@ -5,14 +5,14 @@ class InPlainSite_Reports {
 
 	public static function get() {
 		global $wpdb;
-		$table  = esc_sql( AM_Storage::table() );
-		$rollup = AM_Rollup::empty();
+		$table  = esc_sql( InPlainSite_Storage::table() );
+		$rollup = InPlainSite_Rollup::empty();
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- table name cannot be a placeholder.
 		$bots = $wpdb->get_results( "SELECT bot, MAX(operator) operator, MAX(intent) category, COUNT(*) hits FROM {$table} WHERE is_bot = 1 GROUP BY bot", ARRAY_A );
 		foreach ( $bots as $row ) {
 			$rollup['bots'][ $row['bot'] ] = array(
-				'name'     => AM_Bot_Catalog::get( $row['bot'] )['name'] ?? $row['bot'],
+				'name'     => InPlainSite_Bot_Catalog::get( $row['bot'] )['name'] ?? $row['bot'],
 				'operator' => $row['operator'],
 				'category' => ! empty( $row['category'] ) ? $row['category'] : 'unknown',
 				'hits'     => (int) $row['hits'],
@@ -30,21 +30,17 @@ class InPlainSite_Reports {
 			$rollup['pages'][ $row['path'] ]                    = ( $rollup['pages'][ $row['path'] ] ?? 0 ) + (int) $row['hits'];
 		}
 
-		$status                             = get_option( 'am_parse_status', array() );
+		$status                             = get_option( 'inplainsite_parse_status', array() );
 		$rollup['generated']                = (int) ( $status['generated'] ?? time() );
 		$rollup['log_path']                 = $status['log_path'] ?? null;
 		$rollup['error']                    = $status['error'] ?? null;
 		$rollup['diagnostics']              = $status['diagnostics'] ?? array();
 		$rollup['total_lines']              = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
 		$rollup['skipped']                  = (int) ( $status['skipped'] ?? 0 );
-		$rollup['recommended_interval_min'] = AM_Rollup::recommended_interval_minutes( $rollup );
-		$rollup['interval_min']             = (int) ( AM_Rollup::interval() / MINUTE_IN_SECONDS );
-		$rollup['next_parse']               = $rollup['generated'] + AM_Rollup::interval();
+		$rollup['recommended_interval_min'] = InPlainSite_Rollup::recommended_interval_minutes( $rollup );
+		$rollup['interval_min']             = (int) ( InPlainSite_Rollup::interval() / MINUTE_IN_SECONDS );
+		$rollup['next_parse']               = $rollup['generated'] + InPlainSite_Rollup::interval();
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		return $rollup;
 	}
 }
-
-class_alias( 'InPlainSite_Reports', 'AgentLens_Reports' );
-class_alias( 'InPlainSite_Reports', 'Agent_Ready_Reports' );
-class_alias( 'InPlainSite_Reports', 'AM_Reports' );

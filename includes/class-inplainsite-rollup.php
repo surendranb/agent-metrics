@@ -3,8 +3,8 @@ defined( 'ABSPATH' ) || exit;
 
 class InPlainSite_Rollup {
 
-	const TRANSIENT   = 'agent_ready_rollup';
-	const GUARD       = 'agent_ready_last_parse_attempt';
+	const TRANSIENT   = 'inplainsite_rollup';
+	const GUARD       = 'inplainsite_last_parse_attempt';
 	const GUARD_TTL   = 120;
 	const WINDOW_DAYS = 30;
 
@@ -50,30 +50,35 @@ class InPlainSite_Rollup {
 		$cutoff = gmdate( 'Y-m-d', time() - ( self::WINDOW_DAYS - 1 ) * DAY_IN_SECONDS );
 		foreach ( array_keys( $existing['days'] ) as $day ) {
 			if ( $day < $cutoff ) {
-				unset( $existing['days'][ $day ], $existing['day_pages'][ $day ] );
+				unset( $existing['days'][ $day ] );
 			}
 		}
-		$bot_meta = $existing['bots'];
-		$totals   = array();
+		foreach ( array_keys( $existing['day_pages'] ) as $day ) {
+			if ( $day < $cutoff ) {
+				unset( $existing['day_pages'][ $day ] );
+			}
+		}
+
+		$active_bots = array();
 		foreach ( $existing['days'] as $slugs ) {
 			foreach ( $slugs as $slug => $n ) {
-				$totals[ $slug ] = ( $totals[ $slug ] ?? 0 ) + $n;
+				$active_bots[ $slug ] = true;
 			}
 		}
-		$existing['bots'] = array();
-		foreach ( $totals as $slug => $n ) {
-			$existing['bots'][ $slug ] = array(
-				'name'     => $bot_meta[ $slug ]['name'] ?? $slug,
-				'category' => $bot_meta[ $slug ]['category'] ?? 'unknown',
-				'hits'     => $n,
-			);
+		foreach ( array_keys( $existing['bots'] ) as $slug ) {
+			if ( empty( $active_bots[ $slug ] ) ) {
+				unset( $existing['bots'][ $slug ] );
+			}
 		}
-		$existing['pages'] = array();
+
+		$active_pages = array();
 		foreach ( $existing['day_pages'] as $paths ) {
 			foreach ( $paths as $path => $n ) {
-				$existing['pages'][ $path ] = ( $existing['pages'][ $path ] ?? 0 ) + $n;
+				$active_pages[ $path ] = ( $active_pages[ $path ] ?? 0 ) + $n;
 			}
 		}
+		$existing['pages'] = $active_pages;
+
 		return $existing;
 	}
 
@@ -82,12 +87,12 @@ class InPlainSite_Rollup {
 		if ( is_array( $cached ) ) {
 			return $cached;
 		}
-		$status = get_option( 'am_parse_status', array() );
+		$status = get_option( 'inplainsite_parse_status', array() );
 		if ( ! empty( $status['generated'] ) && time() - (int) $status['generated'] < self::interval() ) {
-			return self::cache( AM_Reports::get() );
+			return self::cache( InPlainSite_Reports::get() );
 		}
 		if ( time() - (int) get_option( self::GUARD ) < self::GUARD_TTL ) {
-			return self::cache( AM_Reports::get() );
+			return self::cache( InPlainSite_Reports::get() );
 		}
 		update_option( self::GUARD, time() );
 		return self::refresh();
@@ -99,7 +104,7 @@ class InPlainSite_Rollup {
 	}
 
 	public static function interval() {
-		$min = (int) get_option( 'am_parse_interval_minutes', 0 );
+		$min = (int) get_option( 'inplainsite_parse_interval_minutes', 0 );
 		if ( 0 === $min ) {
 			$last = get_transient( self::TRANSIENT );
 			$min  = ( is_array( $last ) && ! empty( $last['recommended_interval_min'] ) ) ? (int) $last['recommended_interval_min'] : 5;
@@ -126,9 +131,8 @@ class InPlainSite_Rollup {
 	}
 
 	public static function refresh() {
-		$started = microtime( true );
-		$probe   = AM_Prober::probe();
-		$status  = array(
+		$probe  = InPlainSite_Prober::probe();
+		$status = array(
 			'generated'   => time(),
 			'log_path'    => $probe['path'],
 			'error'       => $probe['error'],
@@ -136,12 +140,12 @@ class InPlainSite_Rollup {
 			'skipped'     => 0,
 		);
 		if ( $probe['path'] ) {
-			$cursor = AM_Storage::cursor();
+			$cursor = InPlainSite_Storage::cursor();
 			$inode  = (string) @fileinode( $probe['path'] );
 			$offset = ( $cursor['path'] ?? null ) === $probe['path'] && ( $cursor['inode'] ?? '' ) === $inode ? (int) ( $cursor['offset'] ?? 0 ) : 0;
-			$read   = AM_Log_Reader::read_from( $probe['path'], $offset );
+			$read   = InPlainSite_Log_Reader::read_from( $probe['path'], $offset );
 			foreach ( $read['lines'] as $record ) {
-				$hit = AM_Parser::parse( $record['line'] );
+				$hit = InPlainSite_Parser::parse( $record['line'] );
 				if ( ! $hit ) {
 					++$status['skipped'];
 					continue;
@@ -151,10 +155,10 @@ class InPlainSite_Rollup {
 					++$status['skipped'];
 					continue;
 				}
-				$bot = AM_Bot_Catalog::match( $hit['ua'] );
-				AM_Storage::insert( $hit, $bot, $probe['path'], $read['inode'], $record['offset'] );
+				$bot = InPlainSite_Bot_Catalog::match( $hit['ua'] );
+				InPlainSite_Storage::insert( $hit, $bot, $probe['path'], $read['inode'], $record['offset'] );
 			}
-			AM_Storage::save_cursor(
+			InPlainSite_Storage::save_cursor(
 				array(
 					'path'    => $probe['path'],
 					'inode'   => $read['inode'],
@@ -163,33 +167,16 @@ class InPlainSite_Rollup {
 				)
 			);
 		}
-		update_option( 'am_parse_status', $status, false );
-		if ( AM_Telemetry::enabled() ) {
-			if ( ! get_option( 'am_telemetry_first_parse', false ) ) {
-				update_option( 'am_telemetry_first_parse', true, false );
-				AM_Telemetry::send( 'first_parse', array( 'status' => $probe['error'] ? 'error' : 'success' ) );
-			}
-			$props = array(
-				'status'          => $probe['error'] ? 'error' : 'success',
-				'duration_ms'     => (int) round( ( microtime( true ) - $started ) * 1000 ),
-				'lines_processed' => count( $read['lines'] ?? array() ),
-				'skipped_lines'   => $status['skipped'],
-			);
-			if ( $probe['error'] ) {
-				$props['error_message'] = $probe['error'];
-			}
-			AM_Telemetry::send( 'parse_completed', $props );
-		}
-		AM_Storage::prune();
-		return self::cache( AM_Reports::get() );
+		update_option( 'inplainsite_parse_status', $status, false );
+		InPlainSite_Storage::prune();
+		return self::cache( InPlainSite_Reports::get() );
 	}
 
 	public static function invalidate() {
 		delete_transient( self::TRANSIENT );
-		delete_transient( 'am_rollup' );
-		$status              = get_option( 'am_parse_status', array() );
+		$status              = get_option( 'inplainsite_parse_status', array() );
 		$status['generated'] = 0;
-		update_option( 'am_parse_status', $status, false );
+		update_option( 'inplainsite_parse_status', $status, false );
 	}
 
 	/**
@@ -246,7 +233,3 @@ class InPlainSite_Rollup {
 		return false;
 	}
 }
-
-class_alias( 'InPlainSite_Rollup', 'AgentLens_Rollup' );
-class_alias( 'InPlainSite_Rollup', 'Agent_Ready_Rollup' );
-class_alias( 'InPlainSite_Rollup', 'AM_Rollup' );

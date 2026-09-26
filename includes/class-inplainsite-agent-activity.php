@@ -2,7 +2,7 @@
 /**
  * Surface B — WebMCP bridge support: beacon REST route, inferred LlmsTxt events, front-end enqueue.
  *
- * @package agent-metrics
+ * @package InPlainSite
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -19,9 +19,6 @@ class InPlainSite_Agent_Activity {
 			'permission_callback' => array( __CLASS__, 'check_permission' ),
 		);
 		register_rest_route( 'inplainsite/v1', '/agent-activity', $args );
-		register_rest_route( 'agentlens/v1', '/agent-activity', $args );
-		register_rest_route( 'agent-ready-website/v1', '/agent-activity', $args );
-		register_rest_route( 'agent-metrics/v1', '/agent-activity', $args );
 	}
 
 	public static function check_permission( $request ) {
@@ -37,7 +34,7 @@ class InPlainSite_Agent_Activity {
 		$raw_ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 		$ip       = filter_var( $raw_ip, FILTER_VALIDATE_IP );
 		$ip       = false === $ip ? 'unknown' : $ip;
-		$rate_key = 'am_beacon_rate_' . md5( $ip );
+		$rate_key = 'inplainsite_beacon_rate_' . md5( $ip );
 		$count    = (int) get_transient( $rate_key );
 		if ( $count >= 60 ) {
 			return new WP_REST_Response(
@@ -60,7 +57,7 @@ class InPlainSite_Agent_Activity {
 	}
 
 	public static function maybe_llms_txt() {
-		if ( ! AM_Markdown::enabled() ) {
+		if ( ! InPlainSite_Markdown::enabled() ) {
 			return;
 		}
 		$raw_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
@@ -76,7 +73,7 @@ class InPlainSite_Agent_Activity {
 		global $wpdb;
 		$days   = max( 1, min( 365, (int) $days ) );
 		$cutoff = gmdate( 'Y-m-d H:i:s', time() - $days * DAY_IN_SECONDS );
-		$table  = esc_sql( AM_Storage::table() );
+		$table  = esc_sql( InPlainSite_Storage::table() );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name cannot be a placeholder.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
@@ -133,20 +130,19 @@ class InPlainSite_Agent_Activity {
 	}
 
 	public static function enqueue() {
-		if ( ! AM_Markdown::enabled() ) {
+		if ( ! InPlainSite_Markdown::enabled() ) {
 			return;
 		}
-		$plugin_file = defined( 'INPLAINSITE_FILE' ) ? INPLAINSITE_FILE : ( defined( 'AGENTLENS_FILE' ) ? AGENTLENS_FILE : ( defined( 'AGENT_READY_FILE' ) ? AGENT_READY_FILE : AM_PLUGIN_DIR . 'inplainsite.php' ) );
 		wp_enqueue_script(
 			'inplainsite-webmcp-bridge',
-			plugins_url( 'assets/js/webmcp-bridge.js', $plugin_file ),
+			plugins_url( 'assets/js/webmcp-bridge.js', INPLAINSITE_FILE ),
 			array(),
-			defined( 'INPLAINSITE_VERSION' ) ? INPLAINSITE_VERSION : AM_VERSION,
+			INPLAINSITE_VERSION,
 			array( 'strategy' => 'defer' )
 		);
 		wp_localize_script(
 			'inplainsite-webmcp-bridge',
-			'amAgentActivity',
+			'inplainsiteAgentActivity',
 			array(
 				'slug'  => is_singular() ? (string) get_post_field( 'post_name' ) : '',
 				'nonce' => wp_create_nonce( 'wp_rest' ),
@@ -159,7 +155,7 @@ class InPlainSite_Agent_Activity {
 		$ua = isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 2000 ) : '';
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$wpdb->insert(
-			AM_Storage::table(),
+			InPlainSite_Storage::table(),
 			array(
 				'timestamp'     => current_time( 'mysql', true ),
 				'method'        => 'GET',
@@ -178,7 +174,3 @@ class InPlainSite_Agent_Activity {
 		);
 	}
 }
-
-class_alias( 'InPlainSite_Agent_Activity', 'AgentLens_Agent_Activity' );
-class_alias( 'InPlainSite_Agent_Activity', 'Agent_Ready_Agent_Activity' );
-class_alias( 'InPlainSite_Agent_Activity', 'AM_Agent_Activity' );

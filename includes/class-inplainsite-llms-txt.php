@@ -8,23 +8,23 @@
  *   score = 10 * agent-activity rows on the page URL (LlmsTxt, MarkdownFetch, WebMCP:*)
  *         +  1 * search/on-demand bot rows on the page URL
  *   order: score DESC, then menu_order ASC, then title ASC. Zero-activity pages
- *   fall back to menu order. Pins (option `am_llms_pins`, array of page IDs,
- *   filter `am_llms_pins`) go first in pin order. Hard cap: 100 pages.
+ *   fall back to menu order. Pins (option `inplainsite_llms_txt_pinned`, array of page IDs,
+ *   filter `inplainsite_llms_pins`) go first in pin order. Hard cap: 100 pages.
  *
- * @package agent-metrics
+ * @package InPlainSite
  */
 
 defined( 'ABSPATH' ) || exit;
 
 class InPlainSite_Llms_Txt {
 
-	const OPTION   = 'agent_ready_llms_txt_pinned';
+	const OPTION   = 'inplainsite_llms_txt_pinned';
 	const LIMIT    = 100;
 	const W_AGENT  = 10;
 	const W_SEARCH = 1;
 
 	public static function maybe_serve() {
-		if ( ! AM_Markdown::enabled() ) {
+		if ( ! InPlainSite_Markdown::enabled() ) {
 			return;
 		}
 		$raw_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
@@ -37,8 +37,7 @@ class InPlainSite_Llms_Txt {
 		header( 'Content-Type: text/plain; charset=utf-8' );
 		status_header( 200 );
 		nocache_headers();
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Plain text representation for llms.txt.
-		echo $full ? self::full() : self::txt();
+		echo esc_html( $full ? self::full() : self::txt() );
 		exit;
 	}
 
@@ -60,7 +59,7 @@ class InPlainSite_Llms_Txt {
 	public static function full() {
 		$out = array();
 		foreach ( self::pages() as $post ) {
-			$doc = AM_Markdown::render( $post->ID );
+			$doc = InPlainSite_Markdown::render( $post->ID );
 			if ( '' !== $doc ) {
 				$out[] = '<!-- page: ' . $post->post_name . ' -->' . "\n\n" . $doc;
 			}
@@ -93,7 +92,7 @@ class InPlainSite_Llms_Txt {
 		}
 
 		global $wpdb;
-		$table = esc_sql( AM_Storage::table() );
+		$table = esc_sql( InPlainSite_Storage::table() );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$rows = $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name cannot be a placeholder.
@@ -115,13 +114,8 @@ class InPlainSite_Llms_Txt {
 			$ordered
 		);
 
-		$raw_pins = get_option( self::OPTION, null );
-		if ( null === $raw_pins ) {
-			$raw_pins = get_option( 'am_llms_pins', array() );
-		}
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Backwards compatibility hook.
-		$legacy_pins   = apply_filters( 'am_llms_pins', $raw_pins );
-		$filtered_pins = apply_filters( 'agent_ready_llms_pins', $legacy_pins );
+		$raw_pins      = get_option( self::OPTION, array() );
+		$filtered_pins = apply_filters( 'inplainsite_llms_pins', $raw_pins );
 		$pins          = array();
 		foreach ( (array) $filtered_pins as $id ) {
 			foreach ( $ordered as $i => $post ) {
@@ -151,7 +145,3 @@ class InPlainSite_Llms_Txt {
 		return wp_trim_words( preg_replace( '/\s+/', ' ', $desc ), 30, '…' );
 	}
 }
-
-class_alias( 'InPlainSite_Llms_Txt', 'AgentLens_Llms_Txt' );
-class_alias( 'InPlainSite_Llms_Txt', 'Agent_Ready_Llms_Txt' );
-class_alias( 'InPlainSite_Llms_Txt', 'AM_Llms_Txt' );

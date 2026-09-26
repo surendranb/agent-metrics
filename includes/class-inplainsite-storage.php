@@ -4,8 +4,8 @@ defined( 'ABSPATH' ) || exit;
 class InPlainSite_Storage {
 
 	const VERSION = '1.1';
-	const OPTION  = 'agent_ready_storage_version';
-	const CURSOR  = 'agent_ready_log_cursor';
+	const OPTION  = 'inplainsite_storage_version';
+	const CURSOR  = 'inplainsite_log_cursor';
 	const RETENTION_DAYS = 30;
 
 	public static function table() {
@@ -126,7 +126,3 @@ class InPlainSite_Storage {
 		return $wpdb->query( $wpdb->prepare( 'DELETE FROM ' . $table . ' WHERE timestamp < %s', $cutoff ) );
 	}
 }
-
-class_alias( 'InPlainSite_Storage', 'AgentLens_Storage' );
-class_alias( 'InPlainSite_Storage', 'Agent_Ready_Storage' );
-class_alias( 'InPlainSite_Storage', 'AM_Storage' );

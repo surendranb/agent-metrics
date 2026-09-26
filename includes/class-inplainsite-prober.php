@@ -65,21 +65,9 @@ class InPlainSite_Prober {
 		$paths = array();
 		if ( defined( 'INPLAINSITE_LOG_PATH' ) && INPLAINSITE_LOG_PATH ) {
 			$paths['dev (INPLAINSITE_LOG_PATH)'] = INPLAINSITE_LOG_PATH;
-		} elseif ( defined( 'AGENTLENS_LOG_PATH' ) && AGENTLENS_LOG_PATH ) {
-			$paths['dev (AGENTLENS_LOG_PATH)'] = AGENTLENS_LOG_PATH;
-		} elseif ( defined( 'AGENT_READY_LOG_PATH' ) && AGENT_READY_LOG_PATH ) {
-			$paths['dev (AGENT_READY_LOG_PATH)'] = AGENT_READY_LOG_PATH;
-		} elseif ( defined( 'AM_LOG_PATH' ) && AM_LOG_PATH ) {
-			$paths['dev (AM_LOG_PATH)'] = AM_LOG_PATH;
 		}
 		if ( defined( 'INPLAINSITE_LOG_DIR' ) && INPLAINSITE_LOG_DIR ) {
 			$paths['dev (INPLAINSITE_LOG_DIR)'] = INPLAINSITE_LOG_DIR;
-		} elseif ( defined( 'AGENTLENS_LOG_DIR' ) && AGENTLENS_LOG_DIR ) {
-			$paths['dev (AGENTLENS_LOG_DIR)'] = AGENTLENS_LOG_DIR;
-		} elseif ( defined( 'AGENT_READY_LOG_DIR' ) && AGENT_READY_LOG_DIR ) {
-			$paths['dev (AGENT_READY_LOG_DIR)'] = AGENT_READY_LOG_DIR;
-		} elseif ( defined( 'AM_LOG_DIR' ) && AM_LOG_DIR ) {
-			$paths['dev (AM_LOG_DIR)'] = AM_LOG_DIR;
 		}
 		$user = function_exists( 'get_current_user' ) ? get_current_user() : '';
 		if ( $user ) {
@@ -91,7 +79,3 @@ class InPlainSite_Prober {
 		return $paths;
 	}
 }
-
-class_alias( 'InPlainSite_Prober', 'AgentLens_Prober' );
-class_alias( 'InPlainSite_Prober', 'Agent_Ready_Prober' );
-class_alias( 'InPlainSite_Prober', 'AM_Prober' );

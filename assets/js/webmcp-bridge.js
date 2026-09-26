@@ -3,12 +3,13 @@
 	if ( ! ( 'modelContext' in document ) ) {
 		return;
 	}
-	var slug  = ( window.amAgentActivity && window.amAgentActivity.slug ) || '';
-	var nonce = ( window.amAgentActivity && window.amAgentActivity.nonce ) || '';
+	var config = window.inplainsiteAgentActivity || window.amAgentActivity || {};
+	var slug   = config.slug || '';
+	var nonce  = config.nonce || '';
 
 	function beacon( tool ) {
 		try {
-			var url = '/wp-json/agent-metrics/v1/agent-activity' + ( nonce ? '?_wpnonce=' + encodeURIComponent( nonce ) : '' );
+			var url = '/wp-json/inplainsite/v1/agent-activity' + ( nonce ? '?_wpnonce=' + encodeURIComponent( nonce ) : '' );
 			navigator.sendBeacon( url, JSON.stringify( { kind: 'declared', tool: tool, slug: slug } ) );
 		} catch ( e ) {}
 	}
@@ -32,7 +33,7 @@
 			description: 'Returns the content of the current page as markdown.',
 			inputSchema: { type: 'object', properties: {}, required: [] },
 			execute: function () {
-				return getText( '/wp-json/agent-metrics/v1/page-markdown?slug=' + encodeURIComponent( slug ) );
+				return getText( '/wp-json/inplainsite/v1/page-markdown?slug=' + encodeURIComponent( slug ) );
 			}
 		},
 		{

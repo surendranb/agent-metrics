@@ -5,7 +5,7 @@ class InPlainSite_Brief {
 
 	public static function get( $rollup = null ) {
 		if ( null === $rollup ) {
-			$rollup = AM_Rollup::get();
+			$rollup = InPlainSite_Rollup::get();
 			if ( false === $rollup ) {
 				return null;
 			}
@@ -135,7 +135,3 @@ class InPlainSite_Brief {
 		);
 	}
 }
-
-class_alias( 'InPlainSite_Brief', 'AgentLens_Brief' );
-class_alias( 'InPlainSite_Brief', 'Agent_Ready_Brief' );
-class_alias( 'InPlainSite_Brief', 'AM_Brief' );

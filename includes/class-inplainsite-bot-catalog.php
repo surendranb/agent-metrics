@@ -272,7 +272,3 @@ class InPlainSite_Bot_Catalog {
 		return count( self::$bots );
 	}
 }
-
-class_alias( 'InPlainSite_Bot_Catalog', 'AgentLens_Bot_Catalog' );
-class_alias( 'InPlainSite_Bot_Catalog', 'Agent_Ready_Bot_Catalog' );
-class_alias( 'InPlainSite_Bot_Catalog', 'AM_Bot_Catalog' );

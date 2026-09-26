@@ -3,7 +3,6 @@
 [![WordPress Tested](https://img.shields.io/badge/WordPress-6.0%20to%207.1-blue.svg)](https://wordpress.org/plugins/inplainsite/)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2%2B-green.svg)](https://www.gnu.org/licenses/gpl-2.0.html)
 [![PHP](https://img.shields.io/badge/PHP-%3E%3D%207.4-blue.svg)](https://php.net/)
-[![Showcase](https://img.shields.io/badge/Showcase-agent--ready.builditwithai.xyz-orange.svg)](https://agent-ready.builditwithai.xyz)
 
 **Make your WordPress website agent-ready with Markdown twins, dynamic llms.txt, and WebMCP, while tracking AI crawler traffic and bot intent from access logs.**
 
@@ -43,7 +42,7 @@ The chart library is vendored in the plugin. The dashboard does not depend on a 
 
 ## Agent-Ready Surfaces
 
-Every published page answers to agents in two shapes. The HTML page humans see, and a markdown twin agents read (v0.5.0):
+Every published page answers to agents in two shapes. The HTML page humans see, and a markdown twin agents read:
 
 - `/{slug}.md` — the page as clean markdown with frontmatter (title, canonical URL, date).
 - `Accept: text/markdown` on the regular `/{slug}/` URL returns the same markdown; browsers keep getting HTML (`Vary: Accept` does the negotiation).
@@ -66,13 +65,13 @@ The plugin ships a small script (`assets/js/webmcp-bridge.js`) that registers 3 
 - `search_site` — WordPress search (titles, URLs, excerpts).
 - `get_site_map` — the llms.txt site map.
 
-It is progressive enhancement: browsers without `document.modelContext` get a no-op, and nothing changes for human visitors. Every execution beacons `POST /wp-json/agent-metrics/v1/agent-activity` (rate-limited to 60 requests/minute per IP), so you see which tools in-browser agents actually run.
+It is progressive enhancement: browsers without `document.modelContext` get a no-op, and nothing changes for human visitors. Every execution beacons `POST /wp-json/inplainsite/v1/agent-activity` (rate-limited to 60 requests/minute per IP), so you see which tools in-browser agents actually run.
 
 One quirk if you test from Chrome DevTools: the WebMCP pane passes `executeTool` arguments as a JSON-encoded string rather than an object. `search_site` expects `{ query: "..." }` — parse the string before calling.
 
 ## Agent Activity Measurement
 
-v0.5.0 adds a second measurement layer next to the access-log parsing. Intent `agent-activity` records two kinds of events in the same `wp_agent_metrics_hits` table:
+Intent `agent-activity` records two kinds of events in the same `wp_agent_metrics_hits` table:
 
 - **Inferred** — a request to `/{slug}.md` lands as `MarkdownFetch`; a download of `/llms.txt` lands as `LlmsTxt`.
 - **Declared** — a WebMCP execution lands as `WebMCP:{tool}` (e.g. `WebMCP:search_site`), beaconed by the browser itself.
@@ -106,8 +105,8 @@ Activate the plugin in WordPress, then open the **InPlainSite** screen.
 
 The plugin checks these locations in order:
 
-1. `AM_LOG_PATH`, when defined in `wp-config.php`.
-2. `AM_LOG_DIR`, when defined in `wp-config.php`.
+1. `INPLAINSITE_LOG_PATH`, when defined in `wp-config.php`.
+2. `INPLAINSITE_LOG_DIR`, when defined in `wp-config.php`.
 3. `/home/<user>/logs/access*` for cPanel hosts.
 4. `/var/log/nginx/access*`.
 5. `/var/log/apache2/access*`.
@@ -116,7 +115,7 @@ The plugin checks these locations in order:
 For a managed host, define the exact readable file path in `wp-config.php` before the WordPress bootstrap:
 
 ```php
-define( 'AM_LOG_PATH', '/home/example/logs/access.log' );
+define( 'INPLAINSITE_LOG_PATH', '/home/example/logs/access.log' );
 ```
 
 The web-server user must be able to read the file. Open **InPlainSite → Settings** to see every path tested and why it was accepted or rejected.
@@ -140,7 +139,7 @@ The plugin exposes a protected JSON-RPC MCP endpoint so an AI agent can query th
 After activation, open **InPlainSite → Settings** and copy the endpoint and generated API key. The endpoint is:
 
 ```text
-https://your-site.example/wp-json/agent-metrics/v1/mcp
+https://your-site.example/wp-json/inplainsite/v1/mcp
 ```
 
 Available tools:
@@ -162,9 +161,9 @@ Available prompts:
 
 The settings screen includes copy-ready connection snippets for OpenCode, Claude Code, and Cursor. Treat the API key like a password. Regenerate it from Settings if it is exposed.
 
-## Anonymous Diagnostics
+## Local-First Privacy
 
-Anonymous diagnostics are disabled by default. An administrator can enable them under **InPlainSite → Settings** to share plugin and MCP health metadata with the InPlainSite project. This includes product version, event type, status, latency, and parse health. It never includes the site URL, page paths, user agents, access logs, bot traffic, WordPress content, MCP arguments, MCP results, or credentials. The setting and anonymous installation ID are removed when the plugin is uninstalled.
+InPlainSite is completely local-first. No site URLs, page paths, user agents, access logs, or traffic data are ever sent externally. All data remains in your local WordPress database.
 
 ## Bot Catalog
 
@@ -181,7 +180,7 @@ Bot discovery and naming research is informed by [Cloudflare Radar's Bot Directo
 
 ## Data Storage
 
-InPlainSite stores every valid parsed request in a persistent WordPress table named with the site's table prefix, such as `wp_agent_metrics_hits`. Human and bot requests are both retained indefinitely in the MVP. Dashboard and MCP reports are derived from SQL queries over those event rows.
+InPlainSite stores every valid parsed request in a persistent WordPress table named with the site's table prefix, such as `wp_agent_metrics_hits`. Human and bot requests are both retained indefinitely. Dashboard and MCP reports are derived from SQL queries over those event rows.
 
 The plugin tracks the active log file and byte offset so repeated refreshes do not duplicate requests. When a host rotates its logs, the plugin detects the new file and continues ingesting from its beginning. Historical rows remain available after the original log file is deleted.
 
@@ -195,12 +194,6 @@ Run PHP lint checks directly from the plugin repository:
 php -l inplainsite.php
 for file in includes/*.php; do php -l "$file"; done
 ```
-
-The full integration suite used during development lives outside this deployable plugin repository. It covers PHP behavior, parser and rollup logic, WordPress rendering, Chart.js initialization, and the authenticated MCP endpoint.
-
-## Project Status
-
-The plugin is an early real-world release. The local dashboard, parser, rollup, bot taxonomy, and MCP surface are working. The next validation step is installation on a real WordPress host with readable server logs, followed by checking crawler attribution against observed traffic and published bot IP ranges.
 
 ## License
 

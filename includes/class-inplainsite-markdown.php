@@ -3,14 +3,11 @@ defined( 'ABSPATH' ) || exit;
 
 class InPlainSite_Markdown {
 
-	const OPTION    = 'agent_ready_activity_enabled';
-	const QUERY_VAR = 'agent_ready_markdown';
+	const OPTION    = 'inplainsite_activity_enabled';
+	const QUERY_VAR = 'inplainsite_markdown';
 
 	public static function enabled() {
-		$val = get_option( self::OPTION, null );
-		if ( null === $val ) {
-			$val = get_option( 'am_agent_activity', '1' );
-		}
+		$val = get_option( self::OPTION, '1' );
 		return '1' === (string) $val;
 	}
 
@@ -19,10 +16,7 @@ class InPlainSite_Markdown {
 	}
 
 	public static function query_vars( $vars ) {
-		$vars[] = 'inplainsite_markdown';
-		$vars[] = 'agentlens_markdown';
 		$vars[] = self::QUERY_VAR;
-		$vars[] = 'am_markdown';
 		return $vars;
 	}
 
@@ -51,15 +45,12 @@ class InPlainSite_Markdown {
 			'callback'            => array( __CLASS__, 'rest_get' ),
 		);
 		register_rest_route( 'inplainsite/v1', '/page-markdown', $route_args );
-		register_rest_route( 'agentlens/v1', '/page-markdown', $route_args );
-		register_rest_route( 'agent-ready-website/v1', '/page-markdown', $route_args );
-		register_rest_route( 'agent-metrics/v1', '/page-markdown', $route_args );
 	}
 
 	public static function rest_get( $request ) {
 		$post = self::find( $request->get_param( 'slug' ) );
 		if ( ! $post ) {
-			return new WP_Error( 'am_not_found', 'Page not found.', array( 'status' => 404 ) );
+			return new WP_Error( 'inplainsite_not_found', 'Page not found.', array( 'status' => 404 ) );
 		}
 		return array(
 			'slug'      => $post->post_name,
@@ -116,12 +107,11 @@ class InPlainSite_Markdown {
 		header( 'Link: <' . esc_url( $html_url ) . '>; rel="canonical"' );
 		header( 'Vary: Accept' );
 		$ua = isset( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
-		AM_Storage::insert_agent_event(
+		InPlainSite_Storage::insert_agent_event(
 			$negotiated ? wp_parse_url( $html_url, PHP_URL_PATH ) : '/' . $slug . '.md',
 			$ua
 		);
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Direct text/markdown output.
-		echo self::render( $post->ID );
+		echo esc_html( self::render( $post->ID ) );
 		exit;
 	}
 
@@ -392,7 +382,3 @@ class InPlainSite_Markdown {
 		);
 	}
 }
-
-class_alias( 'InPlainSite_Markdown', 'AgentLens_Markdown' );
-class_alias( 'InPlainSite_Markdown', 'Agent_Ready_Markdown' );
-class_alias( 'InPlainSite_Markdown', 'AM_Markdown' );

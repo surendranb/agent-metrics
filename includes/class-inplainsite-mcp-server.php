@@ -12,22 +12,10 @@ class InPlainSite_MCP_Server {
 			'permission_callback' => array( __CLASS__, 'auth' ),
 		);
 		register_rest_route( 'inplainsite/v1', '/mcp', $route_args );
-		register_rest_route( 'agentlens/v1', '/mcp', $route_args );
-		register_rest_route( 'agent-ready-website/v1', '/mcp', $route_args );
-		register_rest_route( 'agent-metrics/v1', '/mcp', $route_args );
 	}
 
 	public static function auth( $request ) {
 		$key = get_option( 'inplainsite_mcp_key' );
-		if ( ! $key ) {
-			$key = get_option( 'agentlens_mcp_key' );
-		}
-		if ( ! $key ) {
-			$key = get_option( 'agent_ready_mcp_key' );
-		}
-		if ( ! $key ) {
-			$key = get_option( 'am_mcp_key' );
-		}
 		if ( ! $key ) {
 			return false;
 		}
@@ -36,15 +24,6 @@ class InPlainSite_MCP_Server {
 			return true;
 		}
 		$header = $request->get_header( 'x-inplainsite-key' );
-		if ( ! $header ) {
-			$header = $request->get_header( 'x-agentlens-key' );
-		}
-		if ( ! $header ) {
-			$header = $request->get_header( 'x-agent-ready-key' );
-		}
-		if ( ! $header ) {
-			$header = $request->get_header( 'x-am-key' );
-		}
 		if ( $header && hash_equals( $key, $header ) ) {
 			return true;
 		}
@@ -56,7 +35,7 @@ class InPlainSite_MCP_Server {
 		$raw_ip   = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 		$ip       = filter_var( $raw_ip, FILTER_VALIDATE_IP );
 		$ip       = false === $ip ? 'unknown' : $ip;
-		$rate_key = 'am_mcp_rate_' . md5( $ip );
+		$rate_key = 'inplainsite_mcp_rate_' . md5( $ip );
 		$count    = (int) get_transient( $rate_key );
 		if ( $count >= 120 ) {
 			return new WP_REST_Response(
@@ -83,43 +62,7 @@ class InPlainSite_MCP_Server {
 
 		try {
 			$result = self::dispatch( $method, $params );
-			if ( 'initialize' === $method ) {
-				$client = is_array( $params['clientInfo'] ?? null ) ? $params['clientInfo'] : array();
-				AM_Telemetry::send(
-					'mcp_started',
-					array(
-						'status'           => 'success',
-						'client_name'      => $client['name'] ?? '',
-						'client_version'   => $client['version'] ?? '',
-						'protocol_version' => $params['protocolVersion'] ?? '',
-					),
-					'mcp'
-				);
-			}
-			if ( 'tools/call' === $method ) {
-				AM_Telemetry::send(
-					'tool_executed',
-					array(
-						'status'     => 'success',
-						'tool'       => $params['name'] ?? '',
-						'latency_ms' => (int) round( ( microtime( true ) - $started ) * 1000 ),
-					),
-					'mcp'
-				);
-			}
 		} catch ( Exception $e ) {
-			if ( 'tools/call' === $method ) {
-				AM_Telemetry::send(
-					'tool_error',
-					array(
-						'status'        => 'error',
-						'tool'          => $params['name'] ?? '',
-						'latency_ms'    => (int) round( ( microtime( true ) - $started ) * 1000 ),
-						'error_message' => $e->getMessage(),
-					),
-					'mcp'
-				);
-			}
 			return self::rpc(
 				$id,
 				null,
@@ -156,8 +99,8 @@ class InPlainSite_MCP_Server {
 						'resources' => array( 'listChanged' => false ),
 					),
 					'serverInfo'      => array(
-						'name'    => 'agent-metrics',
-						'version' => AM_VERSION,
+						'name'    => 'inplainsite',
+						'version' => INPLAINSITE_VERSION,
 					),
 				);
 			case 'ping':
@@ -265,7 +208,7 @@ class InPlainSite_MCP_Server {
 	private static function call_tool( $params ) {
 		$name   = $params['name'] ?? '';
 		$args   = (array) ( $params['arguments'] ?? array() );
-		$rollup = AM_Rollup::get();
+		$rollup = InPlainSite_Rollup::get();
 		switch ( $name ) {
 			case 'log_status':
 				$text = array(
@@ -282,7 +225,7 @@ class InPlainSite_MCP_Server {
 				);
 				break;
 			case 'daily_brief':
-				$brief = AM_Brief::get( $rollup );
+				$brief = InPlainSite_Brief::get( $rollup );
 				$text  = null === $brief ? array( 'note' => 'No data yet.' ) : $brief;
 				break;
 			case 'bot_summary':
@@ -376,7 +319,7 @@ class InPlainSite_MCP_Server {
 				break;
 			case 'agent_activity_summary':
 				$days = max( 1, min( 365, (int) ( $args['days'] ?? 30 ) ) );
-				$text = AM_Agent_Activity::summary( $days );
+				$text = InPlainSite_Agent_Activity::summary( $days );
 				break;
 			default:
 				throw new Exception( 'Unknown tool: ' . esc_html( $name ) );
@@ -425,7 +368,7 @@ class InPlainSite_MCP_Server {
 	public static function prompt_text( $name, $args = array() ) {
 		switch ( $name ) {
 			case 'weekly-report':
-				return "You are analyzing AI bot traffic for a WordPress site. Use the agent-metrics tools.\n\n"
+				return "You are analyzing AI bot traffic for a WordPress site. Use the InPlainSite tools.\n\n"
 					. "1. Call bot_summary and bot_trend.\n"
 					. "2. Summarize the last 7 days: total AI bot hits, top 3 bots, biggest changes vs earlier days.\n"
 					. "3. Call top_pages and mention the most-crawled pages.\n"
@@ -475,12 +418,12 @@ class InPlainSite_MCP_Server {
 	private static function resources() {
 		return array(
 			array(
-				'uri'         => 'agent-metrics://summary',
+				'uri'         => 'inplainsite://summary',
 				'name'        => 'Current rollup',
 				'description' => 'The current cached traffic rollup as JSON.',
 			),
 			array(
-				'uri'         => 'agent-metrics://docs/setup',
+				'uri'         => 'inplainsite://docs/setup',
 				'name'        => 'Setup & troubleshooting',
 				'description' => 'How the plugin finds logs and what to do when it cannot.',
 			),
@@ -489,8 +432,8 @@ class InPlainSite_MCP_Server {
 
 	private static function read_resource( $params ) {
 		$uri = $params['uri'] ?? '';
-		if ( 'agent-metrics://summary' === $uri ) {
-			$rollup = AM_Rollup::get();
+		if ( 'inplainsite://summary' === $uri ) {
+			$rollup = InPlainSite_Rollup::get();
 			$text   = wp_json_encode( $rollup, JSON_PRETTY_PRINT );
 			return array(
 				'contents' => array(
@@ -502,9 +445,9 @@ class InPlainSite_MCP_Server {
 				),
 			);
 		}
-		if ( 'agent-metrics://docs/setup' === $uri ) {
+		if ( 'inplainsite://docs/setup' === $uri ) {
 			$text = "The plugin looks for server access logs in these locations, in order:\n"
-				. "- AM_LOG_PATH or AM_LOG_DIR constant (developer override)\n"
+				. "- INPLAINSITE_LOG_PATH or INPLAINSITE_LOG_DIR constant (developer override)\n"
 				. "- /home/<user>/logs/access.log* (cPanel)\n"
 				. "- /var/log/nginx/access.log*\n"
 				. "- /var/log/apache2/access.log*\n"
@@ -522,10 +465,6 @@ class InPlainSite_MCP_Server {
 				),
 			);
 		}
-				throw new Exception( 'Unknown resource: ' . esc_html( $uri ) );
+		throw new Exception( 'Unknown resource: ' . esc_html( $uri ) );
 	}
 }
-
-class_alias( 'InPlainSite_MCP_Server', 'AgentLens_MCP_Server' );
-class_alias( 'InPlainSite_MCP_Server', 'Agent_Ready_MCP_Server' );
-class_alias( 'InPlainSite_MCP_Server', 'AM_MCP_Server' );

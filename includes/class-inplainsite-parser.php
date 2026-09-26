@@ -47,7 +47,3 @@ class InPlainSite_Parser {
 		}
 	}
 }
-
-class_alias( 'InPlainSite_Parser', 'AgentLens_Parser' );
-class_alias( 'InPlainSite_Parser', 'Agent_Ready_Parser' );
-class_alias( 'InPlainSite_Parser', 'AM_Parser' );
